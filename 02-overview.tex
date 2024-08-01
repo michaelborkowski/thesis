@@ -1,0 +1,703 @@
+\chapter{Refinement Types}
+\label{ch:overview}
+We start with an informal overview of
+the usefulness of refinement types and of our
+refined core calculus \sysrf,
+which we later present formally (\Cref{ch:language})
+and prove sound (\Cref{ch:soundness}).
+%
+Concretely,
+we present the goals of refinement types (\S~\ref{sec:overview:goal})
+and how they are achieved via three essential features:
+semantic subtyping, existential types, and polymorphism
+(\S~\ref{sec:overview:essence}).
+We explain how the typing judgements are designed to accommodate these features
+(\S~\ref{sec:overview:design})
+and how we addressed the challenges these features impose in the mechanization
+of the soundness proof (\S~\ref{sec:overview:soundness}).
+Our examples here are presented with the syntax of \lh,
+but can be encoded in \sysrf.
+
+\section{The goal of Refinement Types} 
+\label{sec:overview:goal}
+
+Refinement types refine the types of an existing programming language
+with logical predicates to define abstractions not expressible by the
+underlying type system, which can then be used for static
+%
+(1) error prevention and (2) functional correctness.
+
+
+\begin{figure}[t]
+% \begin{code}
+%   type Array a = Int -> a
+%   {-@ type ArrayN a N = {i:Nat | i < N} -> a @-}
+
+%   {-@ new :: n:Nat -> a -> ArrayN a n @-}
+%   new :: Int -> a -> Array a
+%   new n x = \i -> if 0 <= i && i < n then x else error "Out of Bounds"
+
+%   {-@ set :: n:Nat -> i:{Nat | i < n} -> a -> ArrayN a n -> ArrayN a n @-}
+%   set :: Int -> Int -> a -> Array a  -> Array a
+%   set n i x a = \j -> if i == j then x else a j
+
+%   {-@ get :: n:Nat -> i:{Nat | i < n} -> ArrayN a n -> a @-}
+%   get :: Int -> Int -> Array a -> a
+%   get n i a = a i
+% \end{code}
+\begin{code}
+  type ArrayN a N = {i:Nat | i < N} -> a
+
+  new :: n:Nat -> a -> ArrayN a n
+  new n x = \i -> if 0 <= i && i < n then x else error "Out of Bounds"
+
+  set :: n:Nat -> i:{Nat | i < n} -> a -> ArrayN a n -> ArrayN a n
+  set n i x a = \j -> if i == j then x else a j
+
+  get :: n:Nat -> i:{Nat | i < n} -> ArrayN a n -> a
+  get n i a = a i
+\end{code}
+\vspace{0.0cm}
+\caption{Functional Arrays with refinement types that ensure safe indexing.}
+\vspace{0.0cm}
+\label{fig:array}
+\end{figure}
+
+
+\mypara{Error Prevention}
+Figure \ref{fig:array} presents the interface of a fixed size array
+that is encoded in the core calculus \sysrf as a function.
+%
+The function @new n x@ returns an array that contains
+@x@ when indexed with an integer between @0@ and @n@
+and otherwise throws an ``out of bounds'' error.
+To statically ensure that this error will never occur,
+@new@ returns the refined array @ArrayN a n@, \ie
+a function whose domain is restricted to integers less than @n@.
+%
+The @set@ and @get@ operators manipulate the refined arrays
+on the index @i:{Nat | i < n}@, \ie refined to be in-bounds of the array.
+%
+With this refined interface, out-of-bounds indexing is statically ruled out:
+\begin{code}
+  array10 :: ArrayN Int 10
+  array10 = new 10 0
+
+  good = get 10 4  array10 -- OK
+  bad  = get 10 42 array10 -- Refinement Type Error
+\end{code}
+
+\mypara{Functional Correctness}
+Refinement types are also used to ensure that the program has the intended behavior.
+To achieve this, we use uninterpreted functions to \textit{specify} behaviors
+and rely on the type system to propagate them.
+For example, below using the uninterpreted function @isPrime@ we \textit{specify}
+that some integers are primes, as denoted by the \emph{uninterpreted} predicate @isPrime@.
+%
+\begin{code}
+  measure isPrime :: Int -> Bool
+  type Prime = {v:Int | isPrime v}
+\end{code}
+%
+Refinement types are not ideally suited to verifying properties
+like primality checking, which requires reasoning beyond SMT
+decidable fragments.
+%
+However, \emph{assuming} that a function establishes primality,
+refinements can be used to easily track and propagate the invariant:
+%
+\begin{code}
+  assume checkPrime :: x:Int -> {v:Bool | v <=> isPrime x}
+
+  nextPrime :: Nat -> Prime
+  nextPrime x = if checkPrime x then x else nextPrime (x+1)
+\end{code}
+%  nextPrime x = if checkPrime x then x else nextPrime (x+1)
+% fix f = f (fix f)
+%
+The path-sensitivity of refinement types (Rule~\tIf of \Cref{fig:typing})
+ensures that the function @nextPrime@ returns only
+values that pass the primality check.
+
+\mypara{Note on recursion}
+%
+Our core calculus does not explicitly support recursion.
+But it can be extended with primitive constants (as long as they satisfy 
+the consistency condition in ~\Cref{lem:prim-typing} below).
+So, to encode inductive definitions, like @nextPrime@ in our system, we
+use the fixpoint constant @fix@:
+\begin{mcode}
+  fix :: (a -> a) -> a
+  nextPrime = fix @(Nat->Prime) (\f x->if checkPrime x then x else f (x+1))
+\end{mcode}
+Importantly, our calculus is fully polymorphic, in the sense that
+type variables can be instantiated with refined types.
+So, the type variable of @fix@ can be instantiated with
+the refined type @Nat ->Prime@ to get the desired type of @nextPrime@.
+Here, for emphasis, we make this instantiation explicit,
+but in real systems, like
+\href{http://goto.ucsd.edu:8090/index.html#?demo=permalink%2F1687971696_2572.hs}{\lh},
+the refined type application is inferred.
+
+\mypara{Primes Array Example}
+%
+As a bigger example, consider an example where refinements are used for both
+error prevention and functional correctness.
+%
+The function @primes n@ generates an array with the first @n@ prime numbers:
+%
+\begin{code}
+  primes :: n:Nat -> ArrayN Prime n
+  primes n = (fix go) 1 0 (new n (nextPrime 1))
+    where go f i p acc = if i < n
+                               then let p' = nextPrime (p+1) in
+                                      go f (i+1) p' (set n i p' acc)
+                               else acc
+\end{code}
+%
+Since @primes@ typechecks under the safe array interface of \Cref{fig:array},
+no out-of-bounds errors will occur.
+%
+At the same time, all elements of the array are @set@ by a result @nextPrime@
+and thus @primes@ returns an array of prime numbers.
+
+\section{The Essence of Refinement Types} \label{sec:overview:essence}
+%
+The practicality of refinement types, as illustrated in the examples above,
+is due to the combination of three essential features:
+%
+\begin{enumerate}[leftmargin=*]
+
+\item \textbf{\textit{Semantic Subtyping:}}
+The user does not need to provide any explicit type casts, because
+subtyping is implicit and semantic.
+%
+For example, to type check @get 10 4 array10@ (from~\S~\ref{sec:overview:goal}),
+the type of @4 :: {v:Int | v == 4}@ is implicitly converted to @{v:Int | 0 <= v < 10}@
+
+\item \textbf{\textit{Decidability:}}
+%
+The semantic casts are reduced to logical implications checked by an SMT solver.
+Refinement types are designed to generate decidable logical implications,
+to ensure predictable verification and also permit type inference~\cite{LiquidPLDI08}
+that makes verification practical, \eg the @primes@ definition requires zero annotations.
+
+\item \textbf{\textit{Polymorphism:}}
+Polymorphism on refinement types permits instantiation of type variables with any refined type.
+For example, the same array interface can be used to describe primes,
+functions with positive domains, and any other concept encoded as a refinement type.
+\end{enumerate}
+
+\section{The Design of Refinement Types}
+\label{sec:overview:design}
+
+Next, we develop a minimal calculus \sysrf that shows how
+Refinement type systems enjoy the three essential features
+of \S~\ref{subsec:overview:essence}.
+%
+\sysrf has four judgements that relate expressions ($e$),
+types ($t$), kinds ($k$), predicates ($p$), and environments ($\tcenv$):
+%
+(1)~typing (\hastype{\tcenv}{e}{t}),
+%
+(2)~subtyping (\isSubType{\tcenv}{t_1}{t_2}),
+%
+(3)~well-formedness (\isWellFormed{\tcenv}{\stype}{\skind}),
+and
+(4)~implication checking (\imply{\tcenv}{p_1}{p_2}).
+%
+In \S~\ref{sec:lang:static} we define the judgements in detail.
+%
+Here, we present the design decisions that ensure the three
+essential features of refinement types.
+
+
+\subsection{Semantic Subtyping}
+%
+\label{subsec:overview:subtyping}
+Refinement types rely on implicit semantic subtyping,
+that is, type conversion (from subtypes) happens without
+any explicit casts and is checked semantically via logical
+validity.
+For example, in the application @get 10 4 array10@ (of Fig.~\ref{fig:array}),
+the type of @4@ was implicitly converted.
+%
+To see how, consider an environment $\tcenv$ that contains
+the array interface.
+%
+Let
+%
+$
+    \tcenv \subseteq \{\texttt{get}:n:\tint \rightarrow i:\breft{\tint}{\vv}{ \vv < n} \rightarrow \texttt{ArrayN}\ a\ n \rightarrow a\}
+$
+%
+For brevity, we ignore the requirement that $i$ and $n$ are natural numbers
+and, as in Fig.~\ref{fig:array}, we use $\texttt{ArrayN}\ a\ n$ as shorthand for
+$\breft{\tint}{\vv}{ \vv < n} \rightarrow a$.
+%
+The application $(\texttt{get}\ 10)\ 4$ will type check as below,
+using the \tSub rule to implicitly convert the
+type of the argument and the \sBase rule to
+check that $4$ is a valid index
+by checking the validity of the formula $\forall \vv.\ \vv = 4 \Rightarrow \vv < 10$.
+
+$${\small
+\inferrule%*[Right=\tApp]
+{
+    \inferrule%*[Right=\tVar]
+    { \dots }{
+    \hastype{\tcenv}{\texttt{get}\ 10}{{\color{olive}\breft{\tint}{\vv}{ \vv < 10}} \rightarrow
+    \dots
+    % \texttt{ArrayN}\ a\ 10 \rightarrow a
+    }
+    }
+%    \qquad
+%    \qquad
+   \
+   \inferrule%*[Right=\tSub]
+    {
+        \inferrule%*[Right=\tVar]
+        { }
+        {
+            \hastype{\tcenv}{4}{ {\color{teal} \breft{\tint}{\vv}{ \vv = 4 }}}
+        }% {\tPrim}
+        \
+        \inferrule%*[Right=\sBase]
+        { \forall \vv. {\color{teal} \vv = 4} \Rightarrow  {\color{olive} \vv  < 10 }}{
+              \isSubType{\tcenv}{{\color{teal}\breft{\tint}{\vv}{ \vv = 4 }}}{{\color{olive}\breft{\tint}{\vv}{ \vv < 10}}}
+        }{\sBase}
+     }{
+        \hastype{\tcenv}{4}{{\color{olive}\breft{\tint}{\vv}{ \vv < 10}}}
+    }{\tSub}
+ }{
+    \hastype{\tcenv}{\app{\texttt{get}\ 10}{\;\;4}}{\texttt{ArrayN}\ a\ 10 \rightarrow a}
+}% {\tApp}
+}
+$$
+
+Importantly, most refinement type systems
+use syntax-directed rules to destruct
+subtyping obligations into basic (semantic)
+implications.
+%
+For example, in~\Cref{fig:subtyping}
+the rule \sFunc states that functions
+are covariant on the result and contravariant
+on the arguments.
+%
+Thus, a refinement type system can,
+without any %annotations or
+casts,
+decide that $a_{20} : \texttt{ArrayN}\ a\ 20$
+is a suitable argument for the higher order function
+$\texttt{get}\ 10\ 4 : \funcftype{\texttt{ArrayN}\ a\ 10}{a}$
+and type check the expression $\texttt{get}\ 10\ 4\ a_{20}$.
+
+
+\subsection{Decidability}
+\label{subsec:overview:exists}
+%
+As illustrated in the previous type derivation,
+refinement type checking essentially
+generates a set of verification conditions (VCs)
+whose validity implies type safety.
+Importantly, the refinement type checking rules
+are designed to generate VCs in the logical language 
+used by the user-provided specifications.
+%
+In general, let $\mathcal{L}$ be a logical language that contains
+equality and conjunction. If all the user-specified predicates 
+belong to $\mathcal{L}$,
+then the VCs will be in $\mathcal{L}$ as well.
+In practice (\eg in Liquid Haskell~\cite{Seidel14} and Flux~\cite{Flux}), 
+$\mathcal{L}$ is the
+qualifier-free logic of equality, uninterpreted functions, 
+and linear arithmetic (QF-EUFLIA).
+
+To achieve this logical-language preservation, special care is taken
+in type checking function declarations and applications.
+
+
+\mypara{Function Declarations}
+Function declarations are checked using the refinement type rule 
+for let bindings (Rule~\tLet also in~\Cref{fig:typing}).
+%(We note that recursive definitions are encoded using a
+%fixpoint primitive that we assume satisfies~\Cref{lem:prim-typing}
+%and do not require a special rule.)
+$$
+\inferrule
+{\hastype{\tcenv}{\sexpr_f}{\stype_f} \\
+{\isWellFormed{\tcenv}{\stype}{\skind}}\\
+\hastype{\bind{f}{\stype_f},\tcenv}{{\sexpr}}
+     {\stype}
+ }
+{\hastype{\tcenv}{\eletin{f}{\sexpr_f}{\sexpr}}{\stype}}
+{\tLet}
+$$
+The type checking must infer the type $\stype_f$ of the function,
+but that could be user-annotated
+(\eg $\sexpr_f$ could be $\tyann{\sexpr_f'}{\stype_f}$).
+
+Importantly, the body $e$ is checked without knowledge of the definition of $f$.
+%
+The exact encoding of the body of the function definitions
+(for example, as done in Dafny~\cite{Dafny} or Prusti~\cite{Prusti})
+requires the use of $\forall$-quantifiers in the SMT solver,
+thus potentially leading to undecidability.
+%
+Instead, refinement types only use the refinement
+type specifications of functions, providing a fast
+but incomplete verification technique.
+%
+For example, given only the specifications of @get@ and @set@,
+and not their exact definitions, it is \emph{not} possible to show
+that @get@ after @set@ returns the value that was set.
+
+\begin{code}
+  getSet :: n:Int -> i:{Nat|i<n} -> x:a -> ArrayN a n -> {v:a|x == v}
+  getSet n i x a = get n i (set n i x a) -- Refinement Type Error
+\end{code}
+
+\mypara{Function Application}
+% \NV{this is mostly as before, can we instead use an array related example?}
+For decidable type checking, refinement types use an existential type~\cite{Knowles09} to check
+dependent function application, \ie the \rulename{TApp-Exists} rule below, instead
+of the standard type-theoretic \rulename{TApp-Exact} rule.
+%
+$$
+{
+\inferrule%*[Right=\rulename{TApp-Exact}]
+{
+    \hastype{\tcenv}{f}{\functype{x}{\stype_x}{t}} \qquad \hastype{\tcenv}{e}{\stype_x}
+ }{
+    \hastype{\tcenv}{\app{f}{e}}{\stype\subst{}{x}{e}}
+}{\rulename{TApp-Exact}} \qquad\qquad
+\inferrule%*[Right=\rulename{TApp-Exists}]
+{
+    \hastype{\tcenv}{f}{\functype{x}{\stype_x}{t}} \qquad \hastype{\tcenv}{e}{\stype_x}
+ }{
+    \hastype{\tcenv}{\app{f}{e}}{\existype{x}{\stype_x}{\stype}}
+}{\rulename{TApp-Exists}}
+}
+$$
+
+To understand the difference, consider
+some expression $e$ of type $\tpos$ and the identity function $f$
+%
+\begin{align*}
+    e&:\tpos & f&:\functype{x}{\tint}{\breft{\tint}{v}{v = x}}
+\end{align*}
+%
+The application $f\ e$ is typed as $\breft{\tint}{v}{v = e}$ with the \rulename{TApp-Exact} rule,
+which has two problems.
+%
+First, the information that $e$ is positive is lost.
+%
+To regain this information the system needs to re-analyze the expression $e$
+breaking compositional reasoning.
+%
+Second, the arbitrary expression $e$ enters the refinement logic
+potentially breaking decidability.
+%
+Using the \rulename{TApp-Exists} rule, both of these problems are addressed.
+Typing first uses subtyping on $f$ to track the actual type of the argument,
+thus weakening the type of $f$ to $f:\functype{x}{\tpos}{\breft{\tint}{v}{v = x}}$.
+%
+With this, the type of $f\ e$ becomes $\existype{x}{\tpos}{\breft{\tint}{v}{v = x}}$
+preserving the information that the application argument is positive,
+while the variable $x$ cannot break any carefully crafted decidability guarantees.
+
+\citet{Knowles09} introduce the existential application rule
+and show that it preserves the decidability and completeness of the refinement type system.
+%
+An alternative approach for decidable and compositional type checking
+is to ensure that all the application arguments
+are variables by ANF transforming the original
+program~\cite{Flanagan93}.
+%
+ANF is more amicable to \emph{implementation}
+as it does not require the definition of one
+more type form.
+%
+However, ANF is more problematic for the
+\emph{metatheory}, as ANF is not preserved
+by evaluation.
+%
+Additionally, existentials let us \emph{synthesize}
+types for let-binders in a bidirectional style: when
+typing $\eletin{x}{e_1}{e_2}$, the existential lets
+us eliminate $x$ from the type synthesized for
+$e_2$, yielding a precise, algorithmic
+system \cite{CosmanICFP17}.
+%
+Thus, we choose to use existential types in \sysrf.
+
+
+\subsection{Polymorphism}
+\label{subsec:overview:polymorphism}
+
+Polymorphism is a precious type
+abstraction~\cite{10.1145/99370.99404},
+but combined with refinements, it can lead to
+imprecise or, worse, unsound systems.
+%
+As an example, below we present the
+function \ha{max} with four potential
+type signatures.
+%
+$$\begin{array}{rrrcl}
+& \text{Definition} &  \texttt{max} &  = & \lambda x\ y . \texttt{if } x < y \texttt{ then } y \texttt{ else } x \\[0.05in]
+\text{Attempt 1:}& \textit{Monomorphism} & \texttt{max} & :: &
+\functype{x}{\tint}{\functype{y}{\tint}{\breft{\tint}{\vv}{x \leq \vv \wedge y \leq \vv}}}\\
+\text{Attempt 2:}& \textit{Unrefined Polymorphism} & \texttt{max} &  :: &
+\functype{x}{\al}{\functype{y}{\al}{\al}}\\
+\text{Attempt 3:}& \textit{Refined Polymorphism} & \texttt{max} &  :: &
+\functype{x}{\al}{\functype{y}{\al}{\breft{\al}{\vv}{x \leq \vv \wedge y \leq \vv}}}\\
+\sysrf\text{:} & \textit{Kinded Polymorphism} & \texttt{max} &  :: &
+\polytype{\al}{\skbase}\functype{x}{\al}{\functype{y}{\al}{\breft{\al}{\vv}{x \leq \vv \wedge y \leq \vv}}}
+\end{array}$$
+As a first attempt, we give \ha{max} a monomorphic type,
+stating that the result of  \ha{max} is an integer greater than
+or equal to each of its arguments.
+This type is insufficient because it forgets any information known for
+\ha{max}'s arguments. For example, if both arguments are positive,
+the system cannot decide that \ha{max x y} is also positive.
+%
+To preserve the argument information we give \ha{max} a polymorphic
+type, as a second attempt. Now the system can deduce that
+\ha{max x y} is positive, but forgets that it is also
+greater than or equal to both \ha{x} and \ha{y}.
+In a third attempt, we naively combine the benefits of
+polymorphism with refinements to give \ha{max} a very precise type
+that is sufficient to propagate the arguments' properties (positivity)
+and \ha{max} behavior (inequality).
+
+Unfortunately, refinements on arbitrary type
+variables are dangerous for two reasons.
+%
+First, the type of \ha{max} implies
+that the system allows comparison
+of any values (including functions).
+%
+Second, if refinements on type variables
+are allowed, then, for soundness~\cite{Belo11},
+all the types that substitute variables should be refined.
+%
+For example, as detailed in~\S 6~of~\cite{sprite}, if a type variable
+is refined with \tfalse (\ie $\breft{\al}{\vv}{\tfalse}$)
+and gets instantiated with an unrefined function
+type ($\functype{x}{t_x}{t}$),
+then the \tfalse refinement
+is lost and the system becomes unsound.
+
+\mypara{Base Kind when Refined}
+%
+To preserve the benefits of refinements
+on type variables, without the complications
+of refining function types, we introduce
+a kind system that separates the type
+variables that can be refined from the
+ones that cannot.
+%
+To do so, we extend the standard well-formedness rule of refinement types
+to also perform kind checking (\isWellFormed{\tcenv}{\stype}{\skind}).
+%
+Variables with the base kind $\skbase$
+can be refined, compared, and only
+substituted by base, refined types.
+%
+The other type variables have kind $\skstar$
+and can only be trivially refined with \ttrue.
+With this kind system, we have a simple
+and convenient way to encode comparable values
+and we can give \ha{max}
+a polymorphic and precise type that
+naturally rejects non-comparable
+(\eg function) arguments.
+
+
+This simple kind system could be further stratified,
+\ie if some base types did not support comparison,
+and it could be implemented via typeclass constraints,
+if our system contained data types.
+%% NEW sentence:
+A first step towards data types is presented in Chapter
+\Cref{ch:lists}, where we add polymorphic lists to \sysrf,
+which can be refined (for instance, to restrict the length
+of the list), but cannot be compared like base types. This 
+latter restriction is needed because lists themselves can
+contain incomparable terms like functions.
+%%
+
+
+\section{The Soundness of Refinement Types}
+\label{sec:overview:soundness}
+
+In this work we establish two soundness theorems for refinement types
+that precisely relate typing judgments $\hastype{\tcenv}{e}{t}$
+with the high-level goals of error prevention (type safety) and
+functional correctness (denotational soundness).
+
+\mypara{1. Type Safety} ensures that well-typed programs 
+do not get stuck at runtime.
+It says that  if an expression has a type ($\hastype{\emptyset}{e}{t}$)
+and evaluates to another expression ($\evalsTo{\sexpr}{\sexpr'}$),
+then either evaluation reached a value 
+or it can take another step (${\sexpr'}\step{\sexpr''}$).
+In \sysrf, we use the primitive \eerr to denote program errors 
+(such as out-of-bounds indexing of~\Cref{fig:array}).
+The \eerr primitive neither is a value nor takes a step.
+Thus, if an expression type checks, via type safety, 
+we know that \eerr will not be reached at runtime.
+\Cref{lem:soundness} formally defines type safety 
+and it is proved via the preservation and progress lemmas.
+%
+Type safety ensures that programs will not get stuck, but does not ensure that they
+satisfy their functional specifications. This is ensured by the second soundness theorem.
+\NV{But how to we know that evaluation preserves semantics? Revisit after we add the denotations}
+\NV{CHECK RJ's comment}
+
+\mypara{2. Denotational Soundness} states that if an expression has a type ($\hastype{\emptyset}{e}{t}$),
+then it belongs in the denotations of this type ($e \in \denote{t}$).
+For example, the denotation of the type @{i:Nat | i <= 42}@ is the set of integers
+between 0 and 42.
+%
+In~\S~\ref{sec:lang:static} we inductively define the denotations of each type and
+\Cref{lem:denote-sound-first} formally encodes denotational soundness.
+%% NEW 
+Combining Lemmas \Cref{lem:soundness} and \Cref{lem:denote-sound-first},
+we see that the a refined \sysrf type that can be checked for a specific program
+is preserved under evaluation, and thus the semantics of the program is 
+preserved under evaluation.
+%%
+
+This dissertation, for the first time, mechanizes the soundness of refinement types with
+semantic subtyping, existential types, and polymorphism.
+This mechanization turned out to be challenging for three main reasons:
+
+\tikzstyle{block} = [rectangle, draw,
+    text width=6em, text centered, rounded corners, minimum height=3em]
+\begin{figure}
+    \begin{tikzpicture}[
+        colored/.style={fill=#1!20,draw=#1!50!black!50}
+      ]
+        \node [block] (init) (T){\hastype{\tcenv}{e}{t}\\ {\tiny TYPING}};
+        \node [block] (S) [right=1.5cm  of T]{\isSubType{\tcenv}{t}{t} {\tiny SUBTYPING}};
+        \node [block] (W) [left=1.5cm  of T]{\isWellFormed{\tcenv}{\stype}{\skind} {\tiny WELL-FORMEDNESS}};
+        \node [block] (I) [below=1cm  of T]{\imply{\tcenv}{p}{p} {\tiny IMPLICATION}};
+        \draw[-latex]
+           ([yshift=-3mm]T.north east) -- node[right,above]{1}([yshift=-3mm]S.north west);
+        \draw[-latex]
+           ([yshift=+3mm]S.south west) -- node[right,below]{2}([yshift=+3mm]T.south east);
+        \draw[-latex]
+           ([yshift=-3mm]T.north west) -- node[above]{3}([yshift=-3mm]W.north east);
+        \draw[-latex, dashed, blue]
+           ([yshift=+3mm]W.south east) -- node[below]{4}([yshift=+3mm]T.south west);
+        \draw[-latex, dashed, red]
+           (I) -- node[right]{6} (T);
+        \draw[-latex]
+           (S) |- node[midway,left, yshift=1.7ex, xshift=-7ex]{5}  (I);
+    \end{tikzpicture}
+\caption{Dependencies of Typing Judgements in Refinement Types. (Dashed lines do not exist in our formalism.) }
+\label{fig:dependencies}
+\end{figure}
+
+\mypara{Challenge 1: Circularities}
+%
+\Cref{fig:dependencies} presents the dependencies of the four typing judgements in refinement types.
+As we saw in the example of~\S~\ref{subsec:overview:subtyping} 
+(and can be confirmed in the rules defined in~\S~\ref{sec:lang:static}),
+typing depends on subtyping (arrow 1) which in turn depends on implication checking (arrow 5).
+Subtyping depends on typing (arrow 2; because of rule \sWitn of \Cref{fig:subtyping}),
+so typing and subtyping have a circular dependency we cannot break.
+%
+Typing also depends on well-formedness (arrow 3) that checks that
+types, especially the ones inferred by the system, are well-formed:
+all the variables appearing in the refinements are bound in the type environment
+and refinements are of boolean type.
+To check the type of the refinements the system could use typing
+thus introducing one more dependency (arrow 4) and yet another circle.
+We break this dependency by using an unrefined calculus (system \sysf)
+that erases refinements, to check that refinements are well-typed booleans.
+%
+The final potential circle is introduced when implication depends on typing (arrow 6).
+In~\S~\ref{sec:typing:implication:denotational} we define implication via type denotations,
+but as observed by~\citet{Greenberg13}, in this case, special care should be taken
+so that the system is monotonic and thus well-defined.
+To avoid this dangerous circularity we again use typing of \sysf (and not \sysrf) to define
+denotations and thus implication.
+
+% \newtext{
+In summary, circularities in typing judgements are problematic for two reasons:
+\begin{enumerate}[leftmargin=*]
+\item Circularities increase the complexity of proof mechanization. 
+Concretely, because typing and subtyping have a circular dependency, 
+the metatheoretical lemmas (substitution, weakening, narrowing, \etc) 
+require versions for both typing and subtyping, which are proved by mutual induction. 
+If well-formedness was also included in this circularity (arrow 4),
+ then the complexity of the proofs would greatly increase, 
+ but would not necessarily be impossible.
+\item Second, circularities are problematic because they can lead to non well-defined systems. 
+Concretely, \citet{Greenberg13} describes an older refinement type system 
+in which typing appeared in the left hand side of subtyping and, as such, 
+it was non-monotonic and thus not well-defined. 
+This situation corresponds to the red arrow 6 in \cref{fig:dependencies}, 
+which would make the proof impossible due to the typing judgment occurring in 
+a negative position in the implication judgment.  
+\end{enumerate}
+% }
+
+
+\mypara{Challenge 2: Implications}
+%
+The second mechanization challenge was the encoding of implication.
+In the bibliography of refinement types, implication has been defined in three ways:
+\begin{enumerate}[leftmargin=*]
+\item Using \emph{denotations} (of types as sets of terms) defined via operational semantics~\cite{Vazou18, flanagan06}.
+This encoding is more convenient when proving the soundness of the system, since implication
+and thus subtyping and typing, directly connect with operational semantics, making the proof of soundness more direct.
+However, the implementation of this encoding of implication is not realistic, since it is not decidable.
+\item Using \emph{logical implication}~\cite{LiquidPLDI08, Gordon2010PrinciplesAA}.
+The encoding of the implication as a logical implication is the closest to the implementation of a refinement system,
+where an SMT is used to check logical implications. Yet, to prove soundness, a claim should be made that
+logical implication checked by the SMT correctly approximates the runtime semantics of the system
+(\ie presented in rule~\iLog of~\S~\ref{sec:typing:implication:logical}) which has never been mechanized.
+\item By \emph{axiomatization}~\cite{LehmannTanter}.
+A final approach is to leave the implication uninterpreted and axiomatize it with all the properties required to prove soundness.
+This approach is the easiest to mechanize, but it is dangerous, since in the past the axioms assumed for implication
+were inconsistent, thus soundness was ``proved with flawed premises'' (as quoted from Table 1 of~\cite{SekiyamaIG17}).
+\end{enumerate}
+Our mechanization follows a combination of the first and the third approach.
+We specify the interface of implication (via \Cref{lem:implication} of~\S~\ref{sec:typing:implication:interface} which is encoded as
+an inductive data type in the proof mechanization)
+to articulate the exact properties required by the soundness proof.
+Then, in~\S~\ref{sec:typing:implication:denotational}, we implement the implication interface using
+the denotational semantics of the system.
+This encoding has two major benefits.
+First, the denotational implementation ensures that our interface is consistent.
+Second, the development of the interface leaves room for the implementation
+of alternative implication ``oracles'', \eg closer to SMT solvers.
+Even though we did not mechanize this alternative implementation, in~\S~\ref{sec:typing:implication:logical} we present how
+logical implications are derived from the implication judgement.
+
+
+\mypara{Challenge 3: Proof Complexity}
+%
+All the three essential features of refinement types add complexity 
+to the mechanization of the soundness proof.
+Polymorphism requires the extension of well-formedness to kind checking.
+%
+Semantic subtyping makes type checking not syntax-directed
+(thus inversion is not trivial, cf.~\S~\ref{sec:soundness:inversion}) and dependent upon subtyping.
+%
+In turn, the existential types required for decidability make subtyping dependent upon type checking.
+%
+Due to this mutual dependency, the standard metatheoretical lemmas (substitution, weakening, narrowing, \etc)
+require versions for both typing and subtyping, which are proved by mutual induction.
+Thus, the combination of the three essential for refinement types features
+makes the metatheoretical development more complex and prone to unsoundness.
+%
+Once, we have carefully broken the various circularities
+and eliminated potential sources of unsoundness, we get
+unsurprising, albeit strenuous, proofs of the soundness
+of refinement typing.

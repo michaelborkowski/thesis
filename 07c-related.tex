@@ -1,0 +1,215 @@
+\section{Related Work}
+\label{sec:related}
+
+We discuss the most closely related work
+on the metatheory of unrefined and refined
+type systems.
+
+
+% \subsection{Metatheory for Refined Systems}
+
+\mypara{Hybrid \& Contract Systems}
+%
+\citet{flanagan06} formalizes on paper
+a monomorphic lambda calculus with
+refinement types that differs from our \sysrf
+in two ways.
+%
+%Our soundness formalization follows
+First, in \citet{flanagan06}'s type checking
+is hybrid: the developed system
+is undecidable and inserts runtime
+casts when subtyping cannot
+be statically decided.
+%
+Second, the original system lacks polymorphism.
+%
+\citet{SekiyamaIG17} extended hybrid types
+with polymorphism, but unlike \sysrf,
+their system does not support semantic subtyping.
+%
+For example, consider a divide by zero-error.
+The refined types for \ha{div} and 0 could
+be given by
+$\mathsf{div} :: \funcftype{\tint}{\breft{\tint}{n}{n \neq 0} \rightarrow {\tint}}$
+and $0 :: \breft{\tint}{n}{n=0}$.
+This system will compile \ha{div 1 0}
+by inserting a cast on 0:
+$\langle\breft{\tint}{n}{n=0} \Rightarrow \breft{\tint}{n}{n\neq 0}\rangle$,
+causing a definite runtime failure
+that could have easily been prevented
+statically.
+%
+Having removed semantic subtyping,
+the metatheory of~\citet{SekiyamaIG17}
+is highly simplified.
+%
+% \mypara{Decidable Systems}
+%
+Static refinement type systems
+(as summarized by~\citet{sprite})
+usually restrict the definition
+of predicates to quantifier-free
+first-order formulae that can be
+\emph{decided} by SMT solvers.
+%
+This restriction is not preserved
+by evaluation that can substitute
+variables with any value, thus
+allowing expressions that cannot
+be encoded in decidable logics, like
+lambdas, to seep into the predicates of types.
+%
+In contrast, we allow predicates to be
+any language term (including lambdas)
+to prove soundness via preservation
+and progress: our meta-theoretical
+results trivially apply to systems that,
+for efficiency of implementation, restrict
+their source languages.
+%
+Finally, none of the above systems (hybrid,
+contracts or static refinement types) come
+with a machine checked soundness proof.
+
+% \newtext{
+  \mypara{Semantic Subtyping}
+  %
+  Semantic subtyping is not a unique feature of refinement types. 
+  For example, \citet{Castagna02} use the set theoretic models of types 
+  to decide subtyping. 
+  \citet{Castagna05} present an algorithm that decides semantic subtyping 
+  for a core calculus with functional types. 
+  Like \sysrf, \citet{Castagna05} introduce a denotational interpretation of types 
+  to break the circularity between the typing and subtyping relations.
+  Unlike \sysrf, their system does not have polymorphism and, crucially, has no notion of dependency
+  (no refinement type-style binder of arguments).
+  %
+  Moreover, their subtyping algorithm is different than our refinement based algorithm:
+  it is neither type directed nor efficient (\ie it requires backtracking), and
+  cannot be automated by an external SMT solver. 
+% }
+
+\mypara{Mechanizations of Refinement Types}
+%
+%Our soundness formalization follows
+%the axiomatized implication relation
+%of \citet{LehmannTanter} that decides
+%subtyping (our rule \sBase) without
+%formally connecting implication and
+%expression evaluation.
+%
+\citet{LehmannTanter}'s \coq formalization
+of a monomorphic, refined calculus
+differs from \sysrf
+in two ways.
+%
+First, their axiomatized implication, 
+which is similar to our implication interface,
+allows them to 
+restrict the language of refinements
+to decidable logics but provides no formal connection 
+between subtyping and evaluation.
+%
+Instead, we also provide the denotational 
+implementation of the implication interface, 
+thus establish denotation soundness.
+%We allow refinements to be arbitrary
+%program terms and intend, in the future,
+%to connect our axioms to SMT solvers
+%or other oracles.
+%
+Second, \sysrf includes polymorphism,
+existentials, and selfification
+which are critical for % path- and
+context-sensitive refinement typing,
+but make the metatheory more challenging.
+%
+% \mypara{System FR}
+%
+\citet{kuncak-stainless} present System FR,
+a polymorphic, refined language
+with a mechanized metatheory
+of about 30K lines of \coq.
+%
+Compared to our system, their notion
+of subtyping is not semantic, but relies on
+a reducibility relation.
+%
+For example, even though System FR
+will deduce that \tpos is a subtype of
+\tint, it will fail to derive that
+$\tint \rightarrow \tpos$ is subtype
+of  $\tpos \rightarrow \tint$
+as reduction-based subtyping
+cannot reason about contra-variance.
+%
+Because of this more restrictive notion
+of subtyping, their mechanization
+requires neither the indirection of
+denotational soundness nor 
+an implication proving oracle.
+%
+Further, System FR's support
+for polymorphism is limited
+in that it disallows refinements
+on type variables, thereby
+precluding many practically
+useful specifications. %\RJ{check!}
+%
+% \newtext{
+  Recently, \citet{10.1145/3546196.3550162}
+  formalized a 
+  refinement type system 
+  as an embedding of refinement types in Agda.
+  This system is verified 
+  in a few thousand lines of Agda.
+  %
+  This formalism differs significantly from ours in that
+  as an embedding it is built on top of a rich theorem prover 
+  and cannot be used to refine some existing programming language.
+  %
+  Further, 
+  it does not support higher-order
+  functions, polymorphism, 
+  semantic subtyping, neither be automated by an external solver 
+  since soundness reduces to Agda's soundness.
+% }
+%
+Finally, \citet{explicit} mechanize refinement types
+with explicit proof terms in 15K lines of \lean code. 
+They use a categorical, denotational semantics 
+soundness statement, but their calculus 
+by design supports neither semantic subtyping
+nor polymorphism. 
+
+\mypara{Metatheory in \lh}
+\texttt{LWeb}~\cite{lweb} also used \lh 
+to prove metatheory, %concretely 
+the non-interference of $\lambda_{\text{LWeb}}$,
+a core calculus that extends the LIO formalism with database access. 
+The \texttt{LWeb} proof did not use refined data propositions, 
+which were not present at development time,
+%the time of its development, 
+and thus it has two major weaknesses compared to our 
+present development. 
+First, \texttt{LWeb}
+\textit{assumes} termination of $\lambda_{\text{LWeb}}$'s evaluation function; 
+without refined data propositions metatheory can be developed only over 
+terminating functions. 
+This was not a critical limitation since non-interference was only 
+proved for terminating programs. 
+However, in our proof the requirement that evaluation of \sysrf terminates 
+would be too strict. 
+In our encoding with refined data propositions
+such an assumption was not required. 
+Second, the \texttt{LWeb} development is not constructive: 
+the structure of an assumed evaluation tree is logically inspected 
+instead of the more natural case splitting permitted only with 
+refined data propositions. 
+This constructive way to develop metatheories is more compact 
+(\eg there is no need to logically inspect 
+%the structure of the 
+derivation trees) and akin to the standard 
+meta-theoretic developments of constructive tools like 
+\coq and \isabelle. 

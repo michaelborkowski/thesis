@@ -1,0 +1,712 @@
+\chapter{$\sysf$ Soundness}
+\label{ch:systemF}
+
+Next, we present the metatheory  
+of the underlying (unrefined) 
+$\sysf$. Even though it follows the textbook techniques of~\citet{TAPL},
+it is a convenient 
+stepping stone \emph{towards} 
+the metatheory for (refined) $\sysrf$.
+%
+In addition, the soundness results 
+for $\sysf$ are used \emph{for}                       %% TODO: point to specific
+our full metatheory, as our well-formedness           %% places where sysf Soundness
+judgments require the refinement                      %% used in Denot Sound metath.
+predicate to have the $\sysf$ type 
+$\tbool$ thereby avoiding the circularity 
+of using a regular typing judgment in the 
+antecedents of the well-formedness rules. 
+%
+% \mypara{Outline}
+%
+The \colboth boxes in Figure~\ref{fig:graph}
+show the high level outline of the metatheory 
+for $\sysf$ which provides a miniaturized model
+for $\sysrf$ but without the challenges 
+of subtyping
+and existentials. Next, we describe the top-level 
+type safety result, how it is decomposed into 
+progress (Lemma~\ref{lem:progressFF}) and 
+preservation (Lemma~\ref{lem:preservationFF}) 
+lemmas, and the various technical results that 
+support the lemmas.
+
+Because the syntax of \sysf is identical to the
+syntax of \sysrf, we have the slight complication
+that refinements still appear in our terms.
+%
+Therefore in this chapter we continue to use $t, t', \ldots$ 
+in our definitions and theorems to denote the 
+refined types of \sysrf that will be used
+in type annotations $\tyann{e}{t}$
+and type applications $\tyapp{e}{t}$. 
+%
+To avoid confusion in the development of the
+unrefined metatheory, we will
+use $\sftype, \sftype',\ldots$ for 
+\sysf types. 
+
+\section{Static Semantics}
+\label{sec:staticF}
+
+The small-step semantics for \sysf are identical to
+those of \sysrf (because the syntax is unchanged),
+but the well-formedness and typing rules consist 
+of those in Figures \ref{fig:wf} and \ref{fig:t}
+with the parts in grey erased.
+%
+For clarity, 
+and to make this chapter self-contained,
+we present the $\sysf$ rules for
+well-formedness in Figure \ref{fig:wff} and the 
+rules for typing in Figure \ref{fig:ft}.
+
+\begin{figure}%[t!]
+  %
+  %{\small
+  \begin{mathpar}
+  \judgementHead{Well-formed (Unrefined) Types}{\isWFFT{\tcenv}{\sftype}{\skind}}
+  
+  %%%%%%%%%%%% WELL-FORMEDNESS %%%%%%%%%%%%%
+  %
+  \inferrule% *[Right=\wtBase]
+      {\sbase \in \{\tbool, \tint\}}
+      {\isWFFT{\tcenv}{\sbase}{\skbase}}
+      {\wfftBasic}
+  \quad
+  \inferrule% *[Right=]
+      {\bind{\al}{\skind} \in \tcenv}
+      {\isWFFT{\tcenv}{\al}{\skind}}
+      {\wfftVar} 
+  \quad
+  \inferrule% *[Right=]
+      { \isWFFT{\tcenv}{\sftype}{\skbase} }
+      { \isWFFT{\tcenv}{\sftype}{\skstar} }
+      {\wfftKind} 
+  
+  %    
+  \inferrule% *[Right=\wtFunc]
+      { \isWFFT{\tcenv}{\sftype_x}{\skind_x} \\\\
+      \isWFFT{\tcenv}{\sftype}{\skind}
+      }
+      { \isWFFT{\tcenv}{\funcftype{\sftype_x}{\sftype}}{\skstar} }
+      {\wfftFunc} 
+  \quad
+  \inferrule% *[Right=]
+      { \forall\notmem{\al'}{\tcenv}. \;\;
+        \isWFFT{\bind{\al'}{k}, \tcenv}{\subst{\sftype}{\al}{\al'}}{\skind_\sftype}
+      }
+      { \isWFFT{\tcenv}{\polytype{\al}{\skind}{\sftype}}{\skstar} }
+      {\wfftPoly}
+  %
+  \end{mathpar}
+  %}
+  
+  \vspace{-0.00cm}
+  \caption{Well-formedness of $\sysf$ types.}
+  \label{fig:wff}
+  \label{fig:wfft}
+  \vspace{-0.00cm}
+\end{figure}
+
+
+
+\begin{figure}
+  %  {\small
+    \begin{mathpar}             %%%%%%%%%%%%% TYPING %%%%%%%%%%%%%%%%%%
+    \judgementHead{Typing}{\hasftype{\tcenv}{\sexpr}{\sftype}} \\
+          \inferrule% *[Right=\tPrim]
+          { % \ty{\sconst} = \stype
+          }{\hasftype{\tcenv}{\sconst}{\forgetreft{\ty{\sconst}}}}
+          {\fPrim}
+      \quad
+          \inferrule% *[Right=\tVar]
+          {\bind{x}{\sftype} \in \tcenv  \\\\
+            \isWFFT{\tcenv}{\sftype}{\skind}}
+          {\hasftype{\tcenv}{x}{\sftype}}
+          {\fVar}
+      \quad
+      \inferrule%*[Right=\tAnn]
+      {\hasftype{\tcenv}{\sexpr}{\forgetreft{\stype}} \\\\
+        \isWFFT{\tcenv}{{\forgetreft{\stype}}}{\skind}}
+      {\hasftype{\tcenv}{\tyann{\sexpr}{\stype}}{{\forgetreft{\stype}}}}
+      {\fAnn}
+          \\
+      %
+      \inferrule% *[Right=\tApp]
+      {
+        \hasftype{\tcenv}{\sexpr_x}{\sftype_x}\\\\
+        \hasftype{\tcenv}{\sexpr}{\funcftype{\sftype_x}{\sftype}}
+      }
+      {\hasftype{\tcenv}{\app{\sexpr}{\sexpr_x}}{\sftype}}
+      {\fApp} 
+      \quad
+      \inferrule%*[Right=\tAbs]
+          { \isWFFT{\tcenv}{\sftype_x}{\skind_x}\\\\
+            \forall\notmem{y}{\tcenv}.
+            \hastype{\bind{y}{\sftype_x},\tcenv}{\subst{\sexpr}{x}{y}}{\sftype} 
+            }
+          {\hastype{\tcenv}{\vabs{x}{\sexpr}}{\funcftype{\sftype_x}{\sftype}}}
+          {\fAbs}
+      %
+      \quad
+      %
+          \inferrule% *[Right=\tTAbs]
+          {\forall\notmem{\al'}{\tcenv}.\\\\
+          \hastype{\bind{\al'}{\skind},\tcenv}{\subst{\sexpr}{\al}{\al'}}{\subst{\sftype}{\al}{\al'}}
+          }
+          {\hastype{\tcenv}{\tabs{\al}{\skind}{\sexpr}}{\polytype{\al}{\skind}{\sftype}}}
+          {\fTAbs}
+          \and
+      %
+          \inferrule% *[Right=\tTApp]
+          {
+            \isWFFT{\tcenv}{\sftype}{\skind}\\\\
+            \hastype{\tcenv}{\sexpr}{\polytype{\al}{\skind}{\sftype'}}
+          }
+          {\hastype{\tcenv}{\tyapp{\sexpr}{\sftype}}{\subst{\sftype'}{\al}{\sftype}}}
+          {\fTApp}
+      \quad    
+      %
+          \inferrule% *[Right=\tLet]
+          {\hastype{\tcenv}{\sexpr_x}{\sftype_x} \\\\
+          \forall\notmem{y}{\tcenv}.
+          \hastype{\bind{y}{\sftype_x},\tcenv}{\subst{\sexpr}{x}{y}}
+                {\sftype}
+            }
+          {\hastype{\tcenv}{\eletin{x}{\sexpr_x}{\sexpr}}{\sftype}}
+          {\fLet}
+      \quad    
+      %
+          \inferrule% *[Right=\tIf]
+          {\hastype{\tcenv}{\sexpr}{\tbool} \\
+          \hastype{\tcenv}{\sexpr_1}{\sftype}\\
+          \hastype{\tcenv}{\sexpr_2}{\sftype}
+            }
+          {\hastype{\tcenv}{\eif{\sexpr}{\sexpr_1}{\sexpr_2}}{\sftype}}
+          {\fIf}        
+      \end{mathpar}
+  %  }
+  \vspace{-0.00cm}
+  \caption{Unrefined typing rules.}
+  \label{fig:ft}
+  \label{fig:ftyping}
+  \vspace{-0.00cm}
+\end{figure}
+    
+\section{Metatheory for \sysf}
+\label{sec:soundnessF}
+
+% The proof of both of these theorems 
+% is given by structural induction on 
+% the typing judgment for the closed term. 
+% %
+% % The typing rules are syntax directed 
+% % for $\sysf$, so we can uniquely determine 
+% % the top level syntactic structure of our 
+% % closed term.  
+% % %
+% We refer to this notion as Inversion of Typing.
+% All of the theorems and lemmas mentioned here 
+% appear in \colboth in Figure \ref{fig:graph}.
+%
+% \mypara{Type Safety}
+%
+The main type safety theorem for 
+\sysf states that a well-typed 
+term does not get stuck: \ie either 
+evaluates to a value or can step 
+to another term (progress) 
+of the same type (preservation).
+%
+The judgment \hasftype{\tcenv}{\sexpr}{\sftype} 
+is defined in~\cref{fig:ftyping}, and for clarity we use $\sftype$ 
+for \sysf types and $\stype$ for the $\sysrf$ types that appear
+in user annotations and in type applications. 
+
+\begin{theorem} (Type Safety of \sysf) 
+  \label{lem:soundnessF} (\cref{app:lem:soundnessF} in App. \ref{ch:proofsF})
+  \begin{enumerate}
+      \item (Type Safety)
+      If $\hastype{\varnothing}{\sexpr}{\sftype}$ and $\evalsTo{\sexpr}{\sexpr'}$,
+      then $\sexpr'$ is a value or $\sexpr' \step \sexpr''$
+      %and $\hastype{\varnothing}{\sexpr''}{\stype}$
+      for some $\sexpr''$.
+      \item (No Error)
+      If $\hastype{\varnothing}{\sexpr}{\sftype}$ and $\evalsTo{\sexpr}{\sexpr'}$,
+      then $\sexpr' \not = \eerr$.
+  \end{enumerate}
+  \end{theorem}
+% %
+We prove type safety by induction on the 
+length of the sequence of steps comprising 
+$\evalsTo{\sexpr}{\sexpr'}$, using the 
+preservation and progress lemmas.
+
+\mypara{Progress} \label{sec:sysf:progressF}
+%
+The progress lemma says a well-typed term is a value 
+or steps to some other term.
+%
+\begin{lemma} (Progress) \label{lem:progressFF} 
+If $\hasftype{\varnothing}{\sexpr}{\sftype}$, 
+then $\sexpr$ is a value or $\sexpr \step \sexpr'$ for some $\sexpr'$.
+\end{lemma}
+
+\begin{fullversion}
+%
+Proof of progress requires a \emph{Canonical Forms} 
+lemma (\cref{lem:canonicalF}) which describes the 
+shape of well-typed values and some key properties 
+about the built-in \emph{Primitives} (\cref{lem:primitivesF}).
+%
+We also implicitly use an \emph{Inversion of Typing} 
+lemma (\cref{lem:inversionF}) which describes the shape of the 
+type of well-typed terms and its subterms. For $\sysf$, 
+unlike $\sysrf$, this lemma
+is trivial because the typing relation is syntax-directed.
+
+%\mypara{Canonical Forms}
+%
+%We use the canonical forms lemma 
+%in both Progress and Preservation to case 
+%split on the possible forms for closed 
+%value terms with a given type.
+
+\begin{lemma}\label{lem:canonicalF} (Canonical Forms) 
+\begin{enumerate}
+    \item If $\hasftype{\varnothing}{v}{\tbool}$, 
+        then $v = \ttrue$ or $v = \tfalse$.
+    \item If $\hasftype{\varnothing}{v}{\tint}$, then $v$ is an integer constant.
+    \item If $\hasftype{\varnothing}{v}{\funcftype{\sftype}{\sftype'}}$, 
+        then either $v = \vabs{x}{\sexpr}$ or $v = \sconst$, 
+        a constant function where 
+        $\sconst \in \{\wedge, \vee, \neg, \leftrightarrow \}$.
+    \item If $\hasftype{\varnothing}{v}{\polytype{\al}{\skind}{\sftype}}$, 
+        then either $v = \tabs{\al}{\skind}{\sexpr}$ 
+        or $v = \sconst$, a polymorphic constant $\sconst \in \{\leq, =\}$.
+    \item If $\isWFFT{\varnothing}{\sftype}{\skbase}$,
+        then $\sftype = \tbool$ or $\sftype = \tint$.
+\end{enumerate}
+\end{lemma}
+
+\begin{lemma}\label{lem:inversionF} (Inversion of Typing) 
+    \begin{enumerate}% [leftmargin=*]
+        \item If $\hasftype{\tcenv}{c}{\sftype}$, 
+            then $\sftype = \forgetreft{\ty{c}}$.
+        \item If $\hasftype{\tcenv}{x}{\sftype}$, 
+            then $\bind{x}{\sftype} \in \tcenv$.
+        \item If $\hasftype{\tcenv}{\app{e}{e_x}}{\sftype}$,
+            then there exists type $\sftype_x$ such that  
+            $\hasftype{\tcenv}{e}{\funcftype{\sftype_x}{\sftype}}$ and
+            $\hasftype{\tcenv}{e_x}{\sftype_x}$.
+        \item If $\hasftype{\tcenv}{\vabs{x}{e}}{\sftype}$,\! 
+            then $\sftype = \funcftype{\sftype_x}{\sftype'}$ and
+            $\hasftype{\bind{y}{\sftype_x},\tcenv}{\subst{e}{x}{y}}{\sftype'}$
+            for any $\notmem{y}{\tcenv}$ and well-formed $\sftype_x$.
+        \item If $\hasftype{\tcenv}{\tyapp{e}{t}}{\sftype}$,\! then there exists 
+            type $\sigma$ and kind $\skind$ such that 
+            $\hasftype{\tcenv}{e}{\polytype{\al}{\skind}{\sigma}}$
+            and $\sftype = \subst{\sigma}{\al}{\forgetreft{t}}$.
+        \item If $\hasftype{\tcenv}{\tabs{\al}{\skind}{e}}{\sftype}$, then
+            there exists type $\sftype'$ and kind $\skind$ such that
+            $\sftype = {\polytype{\al}{\skind}{\sftype'}}$ and
+            $\hasftype{\bind{\al'}{\skind},\tcenv}{\subst{e}{\al}{\al'}}
+            {\subst{\sftype'}{\al}{\al'}}$ for some $\notmem{\al'}{\tcenv}$.
+        \item If $\hasftype{\tcenv}{\eletin{x}{e_x}{e}}{\sftype}$, then
+            there exists type $\sftype_x$ and $\notmem{y}{\tcenv}$ such that
+            $\hasftype{\tcenv}{e_x}{\sftype_x}$ and 
+            $\hasftype{\bind{y}{\sftype_x},\tcenv}{\subst{e}{x}{y}}{\sftype}$.
+        \item If $\hasftype{\tcenv}{\tyann{e}{t}}{\sftype}$, then 
+            $\sftype = \forgetreft{t}$ and $\hasftype{\tcenv}{e}{\sftype}$.
+        
+        \item If $\hasftype{\tcenv}{\eif{e}{e_1}{e_2}}{\sftype}$, then
+            $\hasftype{\tcenv}{e}{\tbool}$,
+            $\hasftype{\tcenv}{e_1}{\sftype}$, and 
+            $\hasftype{\tcenv}{e_2}{\sftype}$.
+    \end{enumerate}
+\end{lemma}
+
+%\mypara{Primitives}
+%
+For each primitive constant or function, we need 
+to know that the type $\forgetreft{\ty{\sconst}}$ 
+relates to the $\sysf$ type of $\delta(\sconst,v)$ 
+in the same manner as \fApp.
+%
+% While we could derive this from (\ref{prim-typing}), 
+% it is straightforward enough to prove from scratch 
+% in the mechanization.
+
+\begin{lemma}\label{lem:primitivesF}(Primitives) 
+For each built-in primitive $c$, 
+%
+\begin{enumerate} 
+\item If $\forgetreft{\ty{\sconst}} = \funcftype{\sftype_x}{\sftype}$
+    and $\hasftype{\varnothing}{v_x}{\sftype_x}$, 
+    then % $\delta(\sconst,v)$ is defined and 
+    $\hasftype{\varnothing}{\delta(\sconst,v_x)}{\sftype}$.
+\item If $\forgetreft{\ty{\sconst}} = \polytype{\al}{\skind}{\sftype}$ 
+    and $\isWellFormed{\varnothing}{\sftype_\al}{\skind}$, 
+    then % $\delta_T(\sconst,\stype)$ is defined and we have 
+    $\hasftype{\varnothing}{\delta_T(\sconst,\sftype_\al)}{\subst{\sftype}{\al}{\sftype_\al}}$.
+    \end{enumerate}
+\end{lemma}
+
+%\NV{Michael check the below}
+Lemmas~\ref{lem:canonicalF} and~\ref{lem:inversionF} are proved without
+induction by inspection of the derivation tree, 
+while lemma~\ref{lem:primitivesF} relies on 
+the Primitives Requirement~\ref{lem:prim-typing}. 
+
+\end{fullversion}
+
+\mypara{Preservation} \label{sec:sysf:preservationF}
+%
+The preservation lemma states that $\sysf$ typing is preserved
+by evaluation.
+%
+\begin{lemma} (Preservation) \label{lem:preservationFF} 
+If $\hasftype{\varnothing}{\sexpr}{\sftype}$ and $\sexpr \step \sexpr'$, 
+then $\hasftype{\varnothing}{\sexpr'}{\sftype}$.
+\end{lemma}    
+
+The proof is by structural induction on the 
+derivation of the typing judgment. 
+We use the determinism of the operational 
+semantics (Lemma~\ref{lem:step-determ}) and 
+the canonical forms lemma to case split 
+on $\sexpr$ to determine $\sexpr'$.
+%
+\begin{conference}
+The interesting cases are for \fApp and \fTApp that require 
+a Substitution~\Cref{lem:substitutionF}.
+\end{conference}
+\begin{fullversion}
+    The interesting cases are for \fApp and \fTApp.
+    For applications of primitives, preservation 
+requires the Primitives~\Cref{lem:primitivesF},
+while the general case needs a Substitution~\Cref{lem:substitutionF}.
+\end{fullversion}
+
+\mypara{Substitution Lemma}
+%
+To prove type preservation when
+a lambda or type abstraction is applied, 
+we proved that the substituted result 
+has the same type, as established by 
+the Substitution Lemma:
+%
+\begin{lemma}(Substitution)\label{lem:substitutionFF}
+If $\hasftype{\tcenv}{\sval_x}{\sftype_x}$ 
+and $\isWFFT{\tcenv}{\forgetreft{\stype_{\al}}}{k_{\al}}$, then 
+\begin{enumerate}
+\item if\; $\hasftype{\tcenv', \bind{x}{\sftype_x}, \tcenv}{\sexpr}{\sftype}$
+    and\; $\isWFFE{\tcenv}$, then
+    ${\hasftype{\tcenv', \tcenv}{\subst{\sexpr}{x}{\sval_x}}{\sftype}}$ and 
+\item if\; $\hasftype{\tcenv', \bind{\al}{k_{\al}}, \tcenv}{\sexpr}{\sftype}$
+    and\; $\isWFFE{\tcenv}$, then
+    ${\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
+               {\subst{\sexpr}{\al}{\stype_{\al}}}
+               {\subst{\sftype}{\al}{\forgetreft{\stype_{\al}}}}}$.
+\end{enumerate}
+\end{lemma}
+
+%\NV{Edited, Michael check}
+The proof goes by induction on the derivation tree. 
+Because we encoded our typing rules using 
+cofinite quantification % (\S~\ref{sec:lang:static})
+the proof does not require a renaming lemma, but 
+the rules that lookup environments 
+(rules \tVar and \wtVar) do need a \emph{Weakening Lemma}:
+%\Cref{lem:weakeningF}. 
+% and \emph{rename} free variables 
+%in typing and well-formedness judgments (\cref{lem:freevarsF}).
+
+\begin{lemma}(Weakening) \label{lem:weakeningF}
+If $\hasftype{\tcenv_1,\!\tcenv_2\!}{\!\sexpr\!}{\!\sftype}$ and 
+   $x,\!\al\! \not\in\! {\tcenv_1, \!\tcenv_2}$,
+then 
+%\begin{enumerate} 
+    %\begin{inparaenum}[i)]
+%    \item 
+    \hasftype{\tcenv_1,\!\bind{x}{\sftype_x},\!\tcenv_2}{\!\sexpr\!}{\!\sftype}
+    %\item 
+    and
+    \hasftype{\tcenv_1,\!\bind{\al}{\skind},\!\tcenv_2}{\!\sexpr\!}{\!\sftype}.
+    %\end{inparaenum}
+%\end{enumerate}
+\end{lemma}
+
+% \begin{proof}
+% The proof is by straightforward structural induction on the derivation trees of $\sysf$ typing judgments, weakening the typing and well-formedness judgments in the antecedents. Where needed, we apply the Change of Variables Lemma below to ensure that anything we add to the environment is distinct from the larger, weakened environment.
+% \end{proof}
+
+% We also use the lemma that types in typing judgments are well-formed. 
+
+% The proof of the substitution lemma 
+% depends on the Weakening Lemma and 
+% the Change 
+% of Variables Lemma which allow us to 
+% perform certain technical manipulations 
+% on judgments. 
+% %
+% Each of these three lemmas has versions 
+% that apply to both typing judgments and 
+% well-formedness judgments.
+
+% Lemma \ref{canonicalF} further determines all of the possibilities for well-typed closed values; any other well-typed closed term can be further evaluated. The preservation theorem
+% also relies on Definition \ref{primitivesF} that types are preserved under the defined semantics for the built-in primitives.
+% The main technical challenge in the preservation theorem arises when 
+% our closed term has the form $\app{(\vabs{x}{\sexpr})}{\sval}$
+% or $\tyapp{(\tabs{\al}{\skind}{\sexpr})}{\stype}$;
+% the next step of the evaluation requires substituting 
+% for a term variable or type variable 
+% in the abstraction body $e$, and in the latter case of a type abstraction, 
+% substituting in the type itself. 
+% The relationship between a valid substitution and a typing
+% judgment is given in the Lemma \ref{substitutionF}, the Substitution Lemma. 
+% Two technical lemmas are required to prove the substitution lemma; 
+% these are stated in Lemmas \ref{freevarsF} and \ref{weakeningF}.  
+% The appearance of well-formedness judgments in our typing rules 
+% require us to prove versions of these lemmas 
+% for well-formedness judgments in Lemma \ref{WFFTlemmas} 
+% and to generate well-formedness judgments from typing judgments in Lemma \ref{ftypes-wfft}.
+
+
+
+% \begin{proof}
+%     The proof is by straightforward mutual induction 
+%     on the derivation trees of each typing judgment, 
+%     using the well-formedness version %and (\ref{ftypes-wfft}) 
+%     where needed.
+% \end{proof}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% CUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Use this??
+%We begin by proving the main sequence of lemmas for judgments on the well-formedness of $\sysf$ types. The Free Variables lemmas are proven by mutual structural induction for the term and type variables versions.
+% 
+%     \begin{lemma}\label{WFFTlemmas}
+%         For any $\sysf$ environments $\tcenv$, $\tcenv'$ and $x,y,\al,\al' \not\in \dom{\tcenv', \tcenv}$:
+%         \item (Free Variables) 
+%             If $\isWFFT{\tcenv',\bind{x}{\sftype_x},\tcenv}{\sftype}{\skind}$ 
+%             then $\isWFFT{\tcenv', \bind{y}{\sftype_x} \tcenv}{\sftype}{\skind}$.
+%             If $\isWFFT{\tcenv', \bind{\al}{k_{\al}}, \tcenv}{\sftype}{\skind}$, 
+%             then $\isWFFT{\tcenv', \bind{\al'}{k_{\al}}, \tcenv}{\subst{\sftype}{\al}{\al'}}{\skind}$. 
+%         \item (Weakening) If $\isWFFT{\tcenv', \tcenv}{\sftype}{\skind}$
+%             then $\isWFFT{\tcenv', \bind{x}{\sftype_x}, \tcenv}{\sftype}{\skind}$ 
+%             and $\isWFFT{\tcenv', \bind{\al}{k_{\al}}, \tcenv}{\sftype}{\skind}$.
+%         \item (Substitution Lemma) 
+%             If $\isWFFT{\tcenv', \bind{\al}{k_{\al}}, \tcenv}{\sftype}{\skind}$ and
+%             $\isWFFT{\tcenv}{\sftype_{\al}}{k_{\al}}$  
+%             then $\isWFFT{\subst{\tcenv'}{\al}{\sftype_{\al}},\tcenv}{\subst{\sftype}{\al}{\sftype_{\al}}}{\skind}$.
+%     \end{lemma}
+
+% (don't use these probably)   
+% We can also prove analogous statements for the well-formedness judgments for $\sysf$ environments. These judgments never appear in the antecedent positions in any of our $\sysf$ type well-formedness of $\sysf$ typing rules, so they are not part of the chain of logical dependencies. However, they are used in the full metatheory in order to prove facts about closing substitutions.
+% 
+% Because some $\sysf$ typing judgments have a well-formedness judgment in an antecedent position, we often need to generate a well-formedness judgment for a $\sysf$ type that appears in a typing judgment:
+%     
+% \begin{lemma}\label{ftypes-wfft}
+%     (Well-formedness of $\sysf$ types in judgments) 
+%     If $\hasftype{\tcenv}{\sexpr}{\sftype}$ and $\isWFFE{\tcenv}$ 
+%     then $\isWFFT{\tcenv}{\sftype}{\skstar}$.
+% \end{lemma}
+%
+% \begin{proof}
+% The proof is by structural induction on the typing judgment. In some of the inductive cases we need to use the Weakening lemma above, as well as a strengthening lemma that says we can drop any term variable from the environment because $\sysf$ types cannot contain term variables (no refinements or dependent arrows.)
+% \end{proof}
+%
+% We start the main sequence of lemmas with a lemma that allows us to rename free variables at will. Although this is intuitively obvious, it is required in the proof of the weakening lemma below. Unlike other traditional approaches to System F metatheory \cite{TAPL}, we do not prove a permutation lemma that would allow us to re-order the environment under restricted circumstances.,
+
+
+% REMOVED FIGURES
+% \begin{figure}
+%     \begin{tabular}{rrcll}
+%     \emphbf{Kinds} 
+%       & \skind & $\bnfdef$ & \skbase & \emph{base kind} \\
+%       &        & $\spmid$  & \skstar & \emph{star kind} \\[0.05in]
+%     
+%     \emphbf{Base Types} 
+%       & \sbase & $\bnfdef$ & $\tbool$ & \emph{booleans} \\
+%       &        & $\spmid$  & $\tint$  & \emph{integers} \\
+%       &        & $\spmid$  & $\tvar$  & \emph{type variables} \\[0.05in]
+%     
+%     \emphbf{Types}
+%       & \sftype & $\bnfdef$ & $\sbase$                        & \emph{base type} \\ 
+%       &         & $\spmid$  & $\funcftype{\tau}{\tau'}$       & \emph{function type}  \\        
+%       &        & $\spmid$  & $\polytype{\tvar}{\skind}{\tau}$ & \emph{polymorphic type}  \\ [0.05in]        
+%     
+%     \emphbf{Environments}
+%       & $\tcenv$ & $\bnfdef$ & $\varnothing$                  & \emph{empty environment} \\
+%       &          & $\spmid$  & $\tcenv, \bind{x}{\sftype}$       & \emph{variable binding} \\
+%       &          & $\spmid$  & $\tcenv, \bind{\tvar}{\skind}$ & \emph{type binding} \\
+%     \end{tabular}
+%     \caption{Syntax of $\sysf$ Types and Environments}
+%     \label{fig:syn:ftypes}
+%     \label{fig:syn:fenv}
+%     \end{figure}
+
+%
+% First, rule \wfftBasic states that the two closed base types (\tint and \tbool)
+% are well-formed and have base kind in any context.
+%
+% Similarly, rule \wfftVar says that
+% type variable $\tvar$ is well-formed having kind $\skind$
+% so long as $\bind{\tvar}{\skind}$ is bound in the environment.
+%
+% Next, our rule \wfftFunc states that 
+% a function type $\funcftype{\sftype_x}{\sftype}$
+% is well-formed with star kind in some environment $\tcenv$ if 
+% both types $\sftype_x$ and $\sftype$ are
+% well-formed (with any kind) in the same environment.
+%
+% Next, rule \wfftPoly establishes that a 
+% polymorphic type $\polytype{\tvar}{\skind}{\sftype}$
+% has star kind in environment $\tcenv$ if the 
+% inner type $\stype$ is well-formed (with any kind)
+% in environment $\tcenv$ augmented by binding a fresh
+% type variable $\tvar$ to kind $\skind$.
+%
+% Finally, rule \wfftKind simply states that if a type $\sftype$
+% is well-formed with base kind in some environment, then 
+% it is also well-formed with star kind in that environment.
+%
+% As for environments, rule \wffeEmp states that the empty environment 
+% is well-formed. Rule \wffeBind says that a well-formed environment
+% $\tcenv$ remains well-formed after binding a fresh variable $x$ to any
+% type $\sftype_x$ that is well-formed in $\tcenv$.
+%
+% Finally rule \wffeTBind states that a well-formed environment remains
+% well-formed after binding a fresh type variable to any kind.
+% 
+%     \begin{figure}
+%     \judgementHead{Well-formed Type}{\isWFFT{\tcenv}{\sftype}{\skind}}
+%     \begin{mathpar}      %%%%%%%%%%%% SYSTEM F WELL-FORMEDNESS %%%%%%%%%%%%%
+%         \inferrule*[Right=\wfftBasic]{b\in\{\Bool,\Int\}}
+%                     {\isWFFT{\tcenv}{b}{\skbase}}\and
+%         \inferrule*[Right=\wfftVar]{\bind{\tvar}{\skind} \in \tcenv}
+%                     {\isWFFT{\tcenv}{\tvar}{\skind}}\\
+%         \inferrule*[Right=\wfftFunc]
+%         {\isWFFT{\tcenv}{\sftype_x}{k_x} \quad\; \isWFFT{\tcenv}{\sftype}{k}}
+%         {\isWFFT{\tcenv}{\funcftype{\sftype_x}{\sftype}}{\skstar}} \\
+%         \inferrule*[Right=\wfftPoly]
+%         {\isWFFT{\bind{\al'}{k}, \tcenv}{\subst{\al}{\al'}{\sftype}}{k_\sftype} 
+%             \quad \notmem{\al'}{\dom{\tcenv}} }
+%         {\isWFFT{\tcenv}{\polytype{\al}{k}{\sftype}}{\skstar}} \and
+%         \inferrule*[Right=\wfftKind]{\isWFFT{\tcenv}{\sftype}{\skbase}}
+%             {\isWFFT{\tcenv}{\sftype}{\skstar}} \\
+%     \end{mathpar}
+%    
+%     \judgementHead{Well-formed Environment}{\isWFFE{\tcenv}}
+%     \begin{mathpar}
+%         \inferrule*[Right=\wffeEmp]{ }{\isWFFE{\varnothing}} \and
+%     %
+%         \inferrule*[Right=\wffeBind]{\isWFFT{\tcenv}{\sftype_x}{k_x}  \quad 
+%           \isWFFE{\tcenv} \quad \notmem{x}{\dom{\tcenv}}}
+%           {\isWFFE{\bind{x}{\sftype_x},\tcenv}} \\
+%     %
+%         \inferrule*[Right=\wffeTBind]
+%         {\isWFFE{\tcenv} \quad \notmem{\al}{\dom{\tcenv}}}
+%         {\isWFFE{\bind{\al}{\skind}, \tcenv}}
+%     \end{mathpar}
+%     \caption{Well-formedness of types and environments in $\sysf$}
+%     \label{fig:wfft}\label{fig:wffe}
+%    \end{figure}
+
+%
+% Rule \fPrim states that for any built-in primitive $\sconst$, it can be given base
+% type $\forgetreft{\ty{\sconst}}$ in any context.
+%
+% Rule \fVar establishes that any variable $x$ bound to $\sftype$ 
+% in some environment can be given the same type $\sftype$
+% in that environment.
+%
+% Our rule \fApp states the conditions for typing a term application
+% $\app{\sexpr}{\sexpr'}$. Under the same environment,
+% we must be able to type $\sexpr$ at 
+% some function type $\funcftype{\sftype_x}{\sftype}$ and
+% $\sexpr'$ at $\sftype_x$. Then we can give $\app{\sexpr}{\sexpr'}$
+% type $\sftype$.
+% 
+% Next, rule \fAbs says that we can type a lambda abstraction
+% $\vabs{x}{\sexpr}$ at a function type $\funcftype{\sftype_x}{\sftype}$
+% whenever $\sftype_x$ is well-formed and when the body $\sexpr$
+% can be typed at $\sftype$ in the environment augmented by binding 
+% a fresh variable to $\sftype_x$.
+% 
+% Our rule \fTApp states that whenever a term $\sexpr$ has polymorphic
+% type $\polytype{\al}{\skind}{\sftype'}$, then for any well-formed type 
+% of the form $\forgetreft{\stype}$
+% with kind $\skind$ in the same environment, we can give the type
+% $\subst{\sftype'}{\al}{\forgetreft{\stype}}$ 
+% to the type application $\tyapp{\sexpr}{\stype}$.
+% 
+% The rule \fTAbs establishes that a 
+% type-abstraction $\tabs{\al}{\skind}{\sexpr}$ can be given 
+% a polymorphic type $\polytype{\al}{\skind}{\sftype}$ in some
+% environment $\tcenv$ whenever $\sexpr$ can be given type $\sftype$ 
+% in the environment $\tcenv$ augmented by binding a fresh type variable 
+% to kind $\skind$.
+% 
+% Next, rule $\fLet$ states that an expression 
+% $\eletin{x}{\sexpr_x}{\sexpr}$ has type
+% $\sftype$ in some environment provided that $\sexpr_x$ can
+% be given some type $\sftype_x$ and the body $\sexpr$ can be given type $\sftype$
+% in the augmented environment formed by binding a fresh variable to $\sftype_x$.
+% 
+% Rule $\fAnn$ establishes that an explicit annotation $\tyann{\sexpr}{\stype}$
+% can be given type $\forgetreft{\stype}$ when the underlying expression has 
+% type $\forgetreft{\stype}$.
+
+
+% \begin{figure}
+%     \begin{mathpar}             %%%%%%%%%%%%% SYSTEM F TYPING %%%%%%%%%%%%%%%%%%
+%         \inferrule*[Right=\fPrim]
+%             {\forgetreft{\ty{\sconst}} = \sftype}
+%             {\hasftype{\tcenv}{\sconst}{\sftype}}
+%     %
+%         \and
+%     %
+%         \inferrule*[Right=\fVar]
+%             {\bind{x}{\sftype} \in \tcenv}{\hasftype{\tcenv}{x}{\sftype}} 
+%     %
+%         \and
+%     %
+%         \inferrule*[Right=\fApp]
+%         {\hasftype{\tcenv}{\sexpr}{\funcftype{\sftype_x}{\sftype}} \qquad 
+%             \hasftype{\tcenv}{\sexpr'}{\sftype_x}}
+%         {\hasftype{\tcenv}{\app{\sexpr}{\sexpr'}}{\sftype} } \\
+%     %
+%         \inferrule*[Right=\fAbs]
+%         {\hasftype{\bind{y}{\sftype_x}, \tcenv}{\subst{\sexpr}{x}{y}}{\sftype} \qquad
+%          \isWFFT{\tcenv}{\sftype_x}{\skind_x}  \qquad
+%          \notmem{y}{\dom{\tcenv}}}
+%         {\hasftype{\tcenv}{\vabs{x}{\sexpr}}{\funcftype{\sftype_x}{\sftype}}} \\
+%     %
+%         \inferrule*[Right=\fTApp]
+%         {\hasftype{\tcenv}{\sexpr}{\polytype{\al}{\skind}{\sftype'}} \qquad 
+%          \isWFFT{\tcenv}{\forgetreft{\stype}}{\skind}}
+%         {\hasftype{\tcenv}{\tyapp{\sexpr}{\stype}}{\subst{\sftype'}{\al}{\forgetreft{\stype}}}} \\
+%     %
+%         \inferrule*[Right=\fTAbs]
+%         {\hasftype{\bind{\al'}{\skind}, \tcenv}{\subst{\sexpr}{\al}{\al'}}{\subst{\sftype}{\al}{\al'}} \qquad \notmem{\al'}{\dom{\tcenv}}}
+%         {\hasftype{\tcenv}{\tabs{\al}{\skind}{\sexpr}}{\polytype{\al}{\skind}{\sftype}}} \\
+%     %
+%         \inferrule*[Right=\fLet]
+%         {\hasftype{\tcenv}{\sexpr_x}{\sftype_x} \qquad
+%          \hasftype{\bind{y}{\sftype_x},\tcenv}{\subst{\sexpr}{x}{y}}{\sftype} \qquad
+%          \notmem{y}{\dom{\tcenv}}}
+%         {\hasftype{\tcenv}{\eletin{x}{\sexpr_x}{\sexpr}}{\sftype}} \\
+%     %
+%         \inferrule*[Right=\fAnn]
+%         {\hasftype{\tcenv}{\sexpr}{\sftype} \qquad \forgetreft{\stype} = \sftype}{\hasftype{\tcenv}{\tyann{\sexpr}{\stype}}{\sftype}}
+%     \end{mathpar}
+%     \caption{$\sysf$ typing rules}\label{fig:ft}
+%     \end{figure}

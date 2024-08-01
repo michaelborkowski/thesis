@@ -1,0 +1,487 @@
+%
+%
+% UCSD Doctoral Dissertation Template
+% -----------------------------------
+% https://github.com/ucsd-thesis/ucsd-thesis
+%
+%
+% ----------------------------------------------------------------------
+% WARNING: 
+%
+%   This template has not endorced by OGS or any other official entity.
+%   The official formatting guide can be obtained from OGS.
+%   It can be found on the web here:
+%   http://grad.ucsd.edu/_files/academic-affairs/Dissertations_Theses_Formatting_Manual.pdf
+%
+%   No guaranty is made that this LaTeX class conforms to the official UCSD guidelines.
+%   Make sure that you check the final document against the Formatting Manual.
+%  
+%   That being said, this class has been routinely used for successful 
+%   publication of doctoral theses.  
+%
+%   The ucsd.cls class files are only valid for doctoral dissertations.
+%
+%
+% ----------------------------------------------------------------------
+% GETTING STARTED:
+%
+%   Lots of information can be found on the project wiki:
+%   http://code.google.com/p/ucsd-thesis/wiki/GettingStarted
+%
+%
+%   To make a pdf from this template use the command:
+%     pdflatex template
+%
+%
+%   To get started please read the comments in this template file 
+%   and make changes as appropriate.
+%
+%   If you successfully submit a thesis with this package please let us
+%   know.
+%
+%
+% ----------------------------------------------------------------------
+% KNOWN ISSUES:
+%
+%   Currently only the 12pt size conforms to the UCSD requirements.
+%   The 10pt and 11pt options make the footnote fonts too small.
+%
+%
+% ----------------------------------------------------------------------
+% HELP/CONTACT:
+%
+%   If you need help try the ucsd-thesis google group:
+%   http://groups.google.com/group/ucsd-thesis
+%
+%
+% ----------------------------------------------------------------------
+% BUGS:
+%
+%   Please report all bugs at:
+%   https://github.com/ucsd-thesis/ucsd-thesis/issues
+%
+%
+% ----------------------------------------------------------------------
+% More control of the formatting of your thesis can be achieved through
+% modifications of the included LaTeX class files:
+%
+%   * ucsd.cls    -- Class file
+%   * uct10.clo   -- Configuration files for font sizes 10pt, 11pt, 12pt
+%     uct11.clo                            
+%     uct12.clo
+%
+% ----------------------------------------------------------------------
+
+
+
+% Setup the documentclass 
+% default options: 12pt, oneside, final
+%
+% fonts: 10pt, 11pt, 12pt -- are valid for UCSD dissertations.
+% sides: oneside, twoside -- note that two-sided theses are not accepted 
+%                            by OGS.
+% mode: draft, final      -- draft mode switches to single spacing, 
+%                            removes hyperlinks, and places a black box
+%                            at every overfull hbox (check these before
+%                            submission).
+% chapterheads            -- Include this if you want your chapters to read:
+%                              Chapter 1
+%                              Title of Chapter
+%
+%                            instead of
+%                              1 Title of Chapter
+\documentclass[12pt,chapterheads]{ucsd}
+
+
+
+% Include all packages you need here.  
+% Some standard options are suggested below.
+%
+% See the project wiki for information on how to use 
+% these packages. Other useful packages are also listed there.
+%
+%   http://code.google.com/p/ucsd-thesis/wiki/GettingStarted
+
+
+
+%% AMS PACKAGES - Chances are you will want some or all 
+%    of these if writing a dissertation that includes equations.
+\usepackage{amsmath, amscd, amssymb, amsthm}
+
+%% BONUS MATH
+\usepackage{mathtools} 
+
+%% MARGIN REQUIREMENTS IN TITLES - Hyphenation in a Section Title does not always respect margin settings in Latex.  To force no hyphentation, uncomment the package below.
+%  \usepackage[raggedright]{titlesec} 
+
+%% GRAPHICX - This is the standard package for 
+%    including graphics for latex/pdflatex.
+\usepackage{scrextend}
+\usepackage{pslatex}
+\usepackage{graphicx}
+
+%% CAPTION
+% This overrides some of the ugliness in ucsd.cls and
+% allows the text to be double-spaced while letting figures,
+% tables, and footnotes to be single-spaced--all OGS requirements.
+% NOTE: Must appear after graphics and ams math
+\makeatletter
+\gdef\@ptsize{2}% 12pt documents
+\let\@currsize\normalsize
+\makeatother
+\usepackage{setspace}
+\doublespace
+\usepackage[font=small, width=0.9\textwidth]{caption}
+\usepackage[capposition=bottom]{floatrow} %force captions below figure per OGS requirement
+
+%% SUBFIG - Use this to place multiple images in a
+%    single figure.  Subfig will handle placement and
+%    proper captioning (e.g. Figure 1.2(a))
+% \usepackage{subfig}
+
+%% TIMES FONT - replacements for Computer Modern
+%%   This package will replace the default font with a
+%%   Times-Roman font with math support.
+% \usepackage[T1]{fontenc}
+% \usepackage{mathptmx}
+
+%% INDEX
+%   Uncomment the following two lines to create an index: 
+% \usepackage{makeidx}
+% \makeindex
+%   You will need to uncomment the \printindex line near the
+%   bibliography to display the index.  Use the command
+% \index{keyword} 
+%   within the text to create an entry in the index for keyword.
+%   To compile a LaTeX document with an index the 'makeindex'
+%   command will need to be run.  See the wiki for more details.
+
+%% CITATIONS
+% Sets citation format
+% and fixes up citations madness
+\usepackage{microtype}  % avoids citations that hang into the margin
+
+
+%% FOOTNOTE-MAGIC
+% Enables footnotes in tables, re-referencing the same footnote multiple times.
+\usepackage{footnote}
+\makesavenoteenv{tabular}
+\makesavenoteenv{table}
+
+
+%% TABLE FORMATTING MADNESS
+% Enable all sorts of fun table tricks
+\usepackage{rotating}  % Enables the sideways environment (NCPW)
+\usepackage{array}  % Enables "m" tabular environment http://ctan.org/pkg/array
+\usepackage{booktabs}  % Enables \toprule  http://ctan.org/pkg/array
+
+%% DEPENDENCIES for MECHANIZING REFINEMENT TPYES
+
+\usepackage{booktabs}   %% For formal tables:
+                        %% http://ctan.org/pkg/booktabs
+\usepackage{subcaption} %% For complex figures with subfigures/subcaptions
+                        %% http://ctan.org/pkg/subcaption
+
+
+\usepackage[square,numbers]{natbib}
+\usepackage{float}
+\usepackage[english]{babel}
+\usepackage[normalem]{ulem}
+\usepackage[T1]{fontenc}
+\usepackage[scaled=0.85]{beramono}
+
+\usepackage{framed}
+\usepackage{xspace}
+\usepackage{fancyvrb}
+\usepackage{listings}
+\usepackage{array}%, bigfoot}
+\usepackage{url}
+\usepackage[inline]{enumitem}
+\usepackage{pifont}
+
+\usepackage{stmaryrd}
+\usepackage{xcolor}
+\usepackage{xspace}
+\usepackage{mathpartir}
+
+\usepackage{comment}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,automata,shapes,patterns}
+\usetikzlibrary{matrix,positioning}
+\usepackage{semantic}
+
+\usepackage{commands_full}
+\usepackage[shortcuts]{extdash}
+\usepackage{enumitem}
+
+
+%% HYPERLINKS
+%   To create a PDF with hyperlinks, you need to include the hyperref package.
+%   THIS HAS TO BE THE LAST PACKAGE INCLUDED!
+%   Note that the options plainpages=false and pdfpagelabels exist
+%   to fix indexing associated with having both (ii) and (2) as pages.
+%   Also, all links must be black according to OGS.
+%   See: http://www.tex.ac.uk/cgi-bin/texfaq2html?label=hyperdupdest
+%   Note: This may not work correctly with all DVI viewers (i.e. Yap breaks).
+%   NOTE: hyperref will NOT work in draft mode, as noted above.
+\usepackage[colorlinks=true, pdfstartview=FitV, 
+            linkcolor=black, citecolor=black, 
+            urlcolor=black, plainpages=false,
+            pdfpagelabels]{hyperref}
+\hypersetup{ pdfauthor = {Michael H. Borkowski}, 
+             pdftitle = {Mechanizing Refinement Types}, 
+             pdfkeywords = {Refinement Types}, 
+             pdfcreator = {pdfLaTeX with hyperref package}, 
+             pdfproducer = {pdfLaTeX} }
+\hypersetup{colorlinks=true,allcolors=blue}
+\urlstyle{same}
+% \usepackage{bookmark}
+
+\usepackage{cleveref}
+
+
+
+
+
+%% MY DEFINITIONS
+
+% additional definitions lifted from acmart.cls
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+% mine:
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{requirement}[theorem]{Requirement}
+
+\newif\iffullvers % toggle true or false based on full or conference version
+\fullverstrue % show the full text == Full Version
+%\fullversfalse % hide text and show abbreviated parts == POPL'24 Version
+
+\iffullvers
+  \includecomment{fullversion}
+  \excludecomment{conference}
+\else
+  \includecomment{conference}
+  \excludecomment{fullversion} % anything wrapped in a {wrap} environment will be excluded
+\fi
+
+
+
+\lstset{
+    keywordstyle=\color{blue}
+  , basicstyle=\ttfamily
+  , commentstyle={}
+  , columns=flexible
+  %, numbers=left
+  , showstringspaces=false
+  }
+
+
+%% TIKZ DEPENDENCY CHART SETTINGS
+
+  \newlength{\hatchspread}
+  \newlength{\hatchthickness}
+  \newlength{\hatchshift}
+  \newcommand{\hatchcolor}{}
+  % declaring the keys in tikz
+  \tikzset{hatchspread/.code={\setlength{\hatchspread}{#1}},
+           hatchthickness/.code={\setlength{\hatchthickness}{#1}},
+           hatchshift/.code={\setlength{\hatchshift}{#1}},% must be >= 0
+           hatchcolor/.code={\renewcommand{\hatchcolor}{#1}}}
+  % setting the default values
+  \tikzset{hatchspread=3pt,
+           hatchthickness=0.4pt,
+           hatchshift=0pt,% must be >= 0
+           hatchcolor=black}
+  % declaring the pattern
+  \pgfdeclarepatternformonly[\hatchspread,\hatchthickness,\hatchshift,\hatchcolor]% variables
+     {custom north west lines}% name
+     {\pgfqpoint{\dimexpr-2\hatchthickness}{\dimexpr-2\hatchthickness}}% lower left corner
+     {\pgfqpoint{\dimexpr\hatchspread+2\hatchthickness}{\dimexpr\hatchspread+2\hatchthickness}}% upper right corner
+     {\pgfqpoint{\dimexpr\hatchspread}{\dimexpr\hatchspread}}% tile size
+     {% shape description
+      \pgfsetlinewidth{\hatchthickness}
+      \pgfpathmoveto{\pgfqpoint{0pt}{\dimexpr\hatchspread+\hatchshift}}
+      \pgfpathlineto{\pgfqpoint{\dimexpr\hatchspread+0.15pt+\hatchshift}{-0.15pt}}
+      \ifdim \hatchshift > 0pt
+        \pgfpathmoveto{\pgfqpoint{0pt}{\hatchshift}}
+        \pgfpathlineto{\pgfqpoint{\dimexpr0.15pt+\hatchshift}{-0.15pt}}
+      \fi
+      \pgfsetstrokecolor{\hatchcolor}
+  %    \pgfsetdash{{1pt}{1pt}}{0pt}% dashing cannot work correctly in all situation this way
+      \pgfusepath{stroke}
+     }
+  
+  % declaring the pattern
+  \pgfdeclarepatternformonly[\hatchspread,\hatchthickness,\hatchcolor]% variables
+    {custom horizontal lines} % name
+    {\pgfpointorigin}{\pgfqpoint{100pt}{1pt}}{\pgfqpoint{100pt}{\dimexpr\hatchspread}}%
+    {%
+      \pgfsetlinewidth{\hatchthickness}%
+      \pgfpathmoveto{\pgfqpoint{0pt}{0.5pt}}%
+      \pgfpathlineto{\pgfqpoint{100pt}{0.5pt}}%
+      \pgfsetstrokecolor{\hatchcolor}
+      \pgfusepath{stroke}%
+    }%
+  
+  \pgfdeclarepatternformonly[\hatchspread,\hatchthickness,\hatchcolor]% variables
+    {custom vertical lines}% name
+    {\pgfpointorigin}{\pgfqpoint{1pt}{100pt}}{\pgfqpoint{\dimexpr\hatchspread}{100pt}}%
+    {%
+      \pgfsetlinewidth{\hatchthickness}%
+      \pgfpathmoveto{\pgfqpoint{0.5pt}{0pt}}%
+      \pgfpathlineto{\pgfqpoint{0.5pt}{100pt}}%
+      \pgfsetstrokecolor{\hatchcolor}
+      \pgfusepath{stroke}%
+    }%
+  
+  \pgfdeclarepatternformonly[\hatchspread,\hatchthickness,\hatchcolor]% variables
+    {custom crosshatch dots}
+    {\pgfqpoint{-1pt}{-1pt}}{\pgfqpoint{2.5pt}{2.5pt}}{\pgfqpoint{\dimexpr\hatchspread+\hatchspread}{\dimexpr\hatchspread+\hatchspread}}%
+    {%
+      \pgfpathcircle{\pgfqpoint{0pt}{0pt}}{\hatchthickness}%
+      %\pgfpathcircle{\pgfqpoint{\dimexpr\hatchspread}{\dimexpr\hatchspread}}{\hatchthickness}%
+      \pgfsetstrokecolor{\hatchcolor}%
+      \pgfusepath{stroke}%
+      \pgfusepath{fill}%
+    }%
+  
+  \pgfdeclarepatternformonly[\hatchcolor]%
+    {custom checkerboard}
+    {\pgfpointorigin}{\pgfqpoint{4mm}{4mm}}{\pgfqpoint{4mm}{4mm}}%
+    {%
+      \pgfpathrectangle{\pgfpointorigin}{\pgfqpoint{2mm}{2mm}}%
+      \pgfsetfillcolor{\hatchcolor}%
+      \pgfusepath{fill}%
+      \pgfpathrectangle{\pgfqpoint{2mm}{2mm}}{\pgfqpoint{2mm}{2mm}}%
+      \pgfsetfillcolor{\hatchcolor}%
+      \pgfusepath{fill}%
+    }%
+      
+
+\makeatother
+\newcommand{\cL}{{\cal L}}
+
+\input{haskellListings}
+
+
+
+\begin{document}
+
+
+
+%% CAN THIS BE MOVED ABOVE begin?
+\pgfdeclarelayer{background}
+\pgfdeclarelayer{middleground}
+\pgfdeclarelayer{foreground}
+\pgfsetlayers{background,middleground,main,foreground}
+
+
+%% FRONT MATTER
+%
+%  All of the front matter.
+%  This includes the title, degree, dedication, vita, abstract, etc..
+%  Modify the file template_frontmatter.tex to change these pages.
+\include{dissertation_frontmatter}
+
+
+
+
+
+%% DISSERTATION
+
+% A common strategy here is to include files for each of the chapters. I.e.,
+% Place the chapters is separate files: 
+%   chapter1.tex, chapter2.tex
+% Then use the commands:
+%   \include{chapter1}
+%   \include{chapter2}
+%
+% Of course, if you prefer, you can just start with
+%   \chapter{My First Chapter Name}
+% and start typing away.  
+
+% Ch 1: Introduction
+\input{01-intro}
+
+% Ch 2: Refinement Types
+\input{02-overview}
+
+% Ch 3, 3.1-3.2: System F and RF
+\input{04-language}
+
+% Section 3.3: Static Semantics
+\input{04-static} 
+
+% new ch 4 : System F Metatheory
+\input{03-systemF}
+
+% Ch 5: System RF Soundness
+\input{05-soundness}
+
+% Ch 6: Data Props
+\input{06-data-props}
+
+% Ch 7: 7.1, Implementation
+\input{07a-implementation}
+
+% Section 7.2, Coq
+\input{07b-coq}
+
+% Section 7.3, Related Work 
+\input{07c-related}
+
+% Section 7.4, Conclusions and Future Work
+\input{07d-conclusion}
+
+% Chapter 8: Lists
+%
+
+% Chapter 9: Birdirectional Algorithm
+% 
+
+%% APPENDIX
+\appendix
+
+% App A: System F Soundness Proofs
+\input{aa-proofs}
+
+% App B: System RF Soundness Proofs
+\input{ab-proofs}
+
+% Another appendix for additions?
+%
+
+%% END MATTER
+% \printindex %% Uncomment to display the index
+% \nocite{}  %% Put any references that you want to include in the bib 
+%               but haven't cited in the braces.
+%\bibliographystyle{alpha}  %% This is just my personal favorite style. 
+%                              There are many others.
+%\setlength{\bibleftmargin}{0.25in}  % indent each item
+%\setlength{\bibindent}{-\bibleftmargin}  % unindent the first line
+%\def\baselinestretch{1.0}  % force single spacing
+%\setlength{\bibitemsep}{0.16in}  % add extra space between items
+
+\newcommand{\newblock}{}
+\bibliographystyle{plainnat}
+\singlespace  %to force bibilography environment to use single spacing for each entry 
+              %double spacing between entries remains
+\setcitestyle{numbers, open={[},close={]}}
+% The various parameters that can be passed to this command are the following:
+%Citation mode: authoryear, numbers or super.
+%Brackets: round or square. You can manually set any other opening 
+%   and closing characters with open={char} adn close={char}.
+%Citation separator: semicolon, comma.
+%Separator between author and year: aysep{char}.
+%Separator between years with common author: yysep={char}.
+%Text before post-note: notesep={text}.
+
+
+\bibliography{dissertation}  %% This looks for the bibliography in template.bib 
+%                          which should be formatted as a bibtex file.
+%                          and needs to be separately compiled into a bbl file.
+\end{document}
+

@@ -1,0 +1,576 @@
+\chapter{Implementation and Mechanization}
+\label{ch:implementation}
+
+\section{\lh Mechanization}
+
+We mechanized type safety (\Cref{lem:soundness}) 
+of \sysrf in both \coq 8.15.1 and \lh 8.10.7.1
+(available online as supplementary
+material).
+%
+In \lh we use refined data propositions 
+(\S~\ref{sec:data-props}) to specify the
+static (\eg typing, subtyping, well-formedness)
+and dynamic (\ie small-step transitions and their closure)
+semantics of \sysrf.
+%
+\begin{fullversion}
+  The \lh mechanization is simplified by 
+  SMT-automation (\S~\ref{impl:settheory}),
+  uses a co-finite encoding for reasoning about
+  variables (\S~\ref{subsec:implementation:co-finite}),
+\end{fullversion}
+\begin{conference}
+  The \lh mechanization is simplified by 
+  SMT-automation (\S~\ref{impl:settheory})
+\end{conference}
+and consists of proofs implemented as recursive functions that
+construct  evidence to establish propositions by
+induction (\S~\ref{impl:proofs}).
+%
+
+
+  Other that the development of data propositions, we extended \lh 
+  with two more features during the development of this proof. 
+  First, we implemented an interpreter that 
+  critically dropped the verification time from 10 hours 
+  to only 29 minutes (\S\ref{subsec:quantitiative}). 
+  Second, we implemented a (\coq-style) strictly-positive-occurrence checker
+  to ensure data propositions are well defined, 
+  since early versions of our proof used negative occurrences. 
+
+%
+Note that while Haskell types are inhabited
+by diverging $\bot$ values, \lh's totality,
+termination, and type checks ensure that all
+cases are handled, the induction (recursion)
+is well-founded, and that the proofs (programs)
+indeed inhabit the propositions (types).
+
+
+\subsection{SMT Solvers, Arithmetic, and Set Theory} \label{impl:settheory}
+
+The most tedious part in the mechanization of metatheories
+is the establishment of invariants about variables,
+for example uniqueness and freshness.
+%
+\lh offers a built-in, SMT automated support for the
+theory of sets, which simplifies establishing such
+invariants.
+
+\begin{fullversion}
+  \mypara{Set of Free Variables}
+  Our proof mechanization defines the Haskell function
+  \ha{fv} that returns the \ha{Set} of free variable names
+  that appear in its argument.
+  \begin{mcode}
+  measure fv
+  fv :: Expr -> S.Set VName
+  fv (EVar x)    = S.singleton x
+  fv (ELam e)    = fv e
+  fv (EApp e e') = S.union (fv e) (fv e')
+  ... -- other cases
+  \end{mcode}
+  In the above (incomplete) definition, \ha{S}
+  is used to qualify the standard \verb+Data.Set+ Haskell library.
+  \lh embeds the functions of \verb+Data.Set+ to SMT
+  set operators (encoded as a map to booleans).
+  For example, \ha{S.union} is treated as the
+  logical set union operator $\cup$.
+  %
+  Further, we lift \ha{fv} into the refinement
+  logic using the \ha{measure fv} annotation.
+  %
+  % (and in general we use the special comments
+  % \ha{$\{$-@ ... @-$\}$}) to provide \lh specific
+  % annotations.
+  %
+  The measure definition  defines the logical
+  function \ha{fv} in the logic in a way that
+  lets the SMT solver reason about the semantics
+  of \ha{fv} in a \textit{decidable} fashion,
+  as an uninterpreted function refining the
+  type of each \ha{Expr} data constructor
+  \cite{sprite}.
+  %
+  This embedding, combined with the SMT solver's
+  support for the theory of sets, lets \lh prove
+  properties about expressions' free variables
+  ``for free''.
+\end{fullversion}
+
+\mypara{Intrinsic Verification}
+%
+\begin{conference}
+  \lh embeds the functions of the standard
+  \verb+Data.Set+ Haskell library as SMT
+  set operators. Given a Haskell function,
+  \eg the set of free variables in an expression,
+  this embedding, combined with SMT's
+  support for set theory, 
+  lets \lh prove
+  properties about  free variables
+  ``for free''.
+\end{conference}
+%
+For an example of properties for free, consider the function
+\ha{subFV x vx e} which substitutes
+the variable \ha{x} with
+\ha{vx} in \ha{e}.
+%
+The refinement type of \ha{subFV} 
+describes the free variables of the result.
+%
+\begin{mcode}
+  subFV :: x:VName ->vx:{Expr | isVal vx } ->e:Expr
+        ->{e':Expr | fv e' $\subseteq$ (fv vx $\cup$ (fv e \ x)) && (isVal e => isVal e')}
+  subFV x vx (EVar y)    = if x == y then vx else EVar y
+  subFV x vx (ELam   e)  = ELam (subFV x vx e)
+  subFV x vx (EApp e e') = EApp (subFV x vx e) (subFV x vx e')
+  ... -- other cases
+\end{mcode}
+%
+The refinement type % post condition 
+specifies
+that the free variables after substitution is a subset
+of the free variables in the two argument expressions,
+excluding \ha{x}, \ie
+$\mathtt{fv}(\subst{e}{x}{v_x}) \subseteq
+\mathtt{fv}(v_x) \cup (\mathtt{fv}(e) \setminus \{x\})$.
+This specification is proved \emph{intrinsically},
+\ie the definition of \ha{subFV} is the proof
+(no user aid is required) and, importantly,
+the specification is automatically established each time
+the function \ha{subFV} is called 
+without any need for explicit hints.
+%So, the user does not have to provide explicit hints to reason
+%about free variables of substituted expressions.
+%
+The specification of \ha{subFV} above shows another example
+of SMT-based proof simplification. 
+It intrinsically proves that the value property is preserved
+by substitution, 
+using 
+the Haskell boolean
+function \ha{isVal} that defines
+when an expression is a \emph{value}. 
+
+%as stated by the second (implication) conjunct
+%in the output of \ha{subFV}.
+
+
+\begin{fullversion}
+\mypara{Freshness}
+%
+\lh's support for sets simplifies
+defining a \ha{fresh} function,
+which is often challenging\footnote{For example, \coq cannot fold over a set,
+and so a more complex combination of tactics is
+required to generate a fresh name.}.
+%
+\ha{fresh xs} returns a variable that provably
+does not belong to its input \ha{xs}.
+%
+\begin{mcode}
+  fresh :: xs:S.Set VName -> { x:VName | x $\not\in$ xs }
+  fresh xs = n ? above_max n xs'
+    where n    = 1 + maxs xs'
+          xs'  = S.fromList xs
+
+  maxs :: [VName] -> VName
+  maxs []     = 0
+  maxs (x:xs) = if maxs xs < x then x else maxs xs
+
+  above_max :: x:VName -> xs:{[VName]|maxs xs < x} -> {x $\not\in$ elems xs}
+  above_max _ []     = ()
+  above_max x (_:xs) = above_max x xs
+\end{mcode}
+%
+The \ha{fresh} function returns \ha{n}: the maximum element of the set
+increased by one.
+%
+To compute the maximum element we convert the set to a list
+and use the inductively defined \ha{maxs} functions.
+To prove \ha{fresh}'s intrinsic specification we use
+an extrinsic, \ie explicit, lemma \ha{above_max n xs'}
+that, via the \ha{(?)} combinator of type \ha{a ->  b ->  a},
+tells \lh that \ha{n} is not in the set \ha{xs}.
+%
+This extrinsic lemma is itself trivially proved
+by induction on \ha{xs} and SMT automation.
+\end{fullversion}
+
+\begin{fullversion}
+  \subsection{Co-finite Quantification}
+  \label{subsec:implementation:co-finite}
+  \begin{figure}[t!]
+  \begin{mcode}
+-- Standard Existential Rule
+TAbsEx  :: $\gamma$:Env -> t$_x$:Type -> e:Expr -> t:Type
+        -> y:{VName | y $\not\in$ dom $\gamma$ }
+        -> HasTy ((y,t$_x$):$\gamma$) (unbind y e) (unbindT y t)
+        -> HasTy $\gamma$ (ELam e) (TFunc t$_x$ t)
+
+-- Co-finitely Quantified Rule
+TAbs    :: $\gamma$:Env -> t$_x$:Type -> e:Expr -> t:Type -> l:S.Set VName
+        -> (y:{VName|y $\not\in$ l} -> HasTy ((y,t$_x$):$\gamma$) (unbind y e) (unbindT y t))
+        -> HasTy $\gamma$ (ELam e) (TFunc t$_x$ t)
+
+-- Note: All rules also include k$_{\color{gray_ulisses}x}$:Kind -> WfType ${\color{gray_ulisses}\gamma}$ t$_{\color{gray_ulisses}x}$ k$_{\color{gray_ulisses}x}$ elided for clarity.
+  \end{mcode}
+  \caption{Encoding of Co-finitely Quantified Rules.}
+  \label{fig:impl:co-finite}
+  \end{figure}
+
+  %-- Final Rule: Co-finitely Quantified and Explicit Size
+  %TAbs    :: n:Nat -> $\gamma$:Env -> t$_x$:Type -> e:Expr -> t:Type
+  %        -> l:[VName]
+  %        -> ( y:{VName | y $\not\in$ S.fromList l } ->
+  %             { pf:HasTy ((y,t$_x$):$\gamma$) (unbind y e) (unbindT y t)
+  %                 | typSize pf < typSize this } )
+  %        -> HasTy $\gamma$ (ELam e) (TFunc t$_x$ t)
+  %
+
+  To encode the rules that need a fresh free variable name
+  we use the co-finite quantification of~\citet{AydemirCPPW08}, as discussed
+  in~\S~\ref{sec:lang:static}.
+  %
+  \Cref{fig:impl:co-finite} presents
+  this encoding using the \tAbs rule
+  as an example.
+  %
+  The standard abstraction rule
+  (rule \tAbsEx in~\S~\ref{sec:lang:static})
+  requires to provide a concrete fresh name,
+  which is encoded in the second line of
+  \ha{TAbsEx} as the \ha{y:$\{$VName | y $\not\in$ dom $\gamma\}$} argument.
+  %
+  The co-finitely quantified encoding of the rule \ha{TAbs}, instead,
+  states that there exists a specified finite set of excluded names, namely \ha{l},
+  and requires that the sub-derivation holds for any name \ha{y}
+  that does not belong in \ha{l}.
+  %\NV{I really do not understand how l connects with gamma... I think we need to say something about it}
+  %\NV{Also, why encoded as list and then }
+  That is, the premise is turned into a function
+  that, given the name \ha{y}, returns the sub-derivation.
+  This encoding greatly simplifies our mechanization,
+  since the premises are no more tied to concrete names,
+  eliminating the need for renaming lemmas.
+  %
+  We will often take \ha{l} to be the domain
+  of the environment, but the ability to choose \ha{l}
+  gives us the flexibility when constructing derivations
+  to exclude additional names that clash
+  with another part of a proof.
+\end{fullversion}
+%However, this encoding introduces an interesting challenge
+%in the construction of proofs by induction on the derivation
+%tree (\S~\ref{impl:proofs}).
+%
+%\lh cannot conclude that the size of the derivation
+%subtree is independent of $y$, which makes it impossible
+%accept inductive hypotheses on quantified subtrees.
+%This challenge does not appear in the \coq formalization
+%of~\citet{AydemirCPPW08} as \coq generates induction
+%principles that works over co-finitely quantified
+%inductive hypotheses.
+%
+%Our final \ha{TAbs} rule takes the extra ghost
+%size argument \ha{n} and ensures that the size
+%of the conclusion is bounded by \ha{n+1}, if
+%the size of the premise is bounded by \ha{n}.
+%
+%Now, induction on derivation trees is permitted,
+%at the cost of providing an explicit size argument
+%to quantified judgments.
+%
+
+
+\subsection{Inductive Proofs as Recursive Functions}
+\label{impl:proofs}
+
+The majority of our proofs are by induction on derivations.
+These proofs are recursive Haskell functions that
+operate over refined data propositions. 
+%types reifying the respective derivations. 
+\lh ensures the proofs are valid by checking that
+they are inductive (\ie the recursion is well-founded),
+handle all cases (\ie the function is total), and
+establish the desired properties 
+(\ie witnesses the appropriate proposition).
+
+\mypara{Preservation (\Cref{lem:preservationF})}
+relates the \ha{HasTy} data proposition of~\S~\ref{sec:data-props}
+with a \ha{Step} data proposition that encodes~\Cref{fig:opsem}
+and is proved by induction on the type derivation tree.
+Below we present a snippet of the proof, where 
+the subtyping case is by induction
+while the primitive case is impossible: 
+% (\Cref{lem:step-determ}): this does not seem the correct lemma
+% also does not fit :)
+%
+\begin{mcode}
+  preservation :: e:Expr ->t:Type ->e':Expr ->HasTy Empty e t 
+               ->Step e e' ->HasTy Empty e' t
+  preservation _e _t e' (TSub Empty e t' t e_has_t' t'_sub_t) e_step_e'
+    = TSub Empty e' t' t (preservation e t' e' e_has_t' e_step_e') t'_sub_t
+  preservation  e _t e' (TPrim _ _) step
+    = impossible "value" ? lemValStep e e' step -- $e \step e' \Rightarrow \neg (\text{isVal}\ e)$
+  ...
+  impossible :: {v:String | false} ->a
+  lemValStep :: e:Expr ->e':Expr ->Step e e' ->{$\neg$(isVal e)}
+\end{mcode}
+%where e'_has_t' = preservation e t' e' e_has_t' e_step_e'
+%  preservation e _ e' (TAbs {}) step
+%    = impossible "value" ? lemValStep e e' step -- $e \step e' \Rightarrow \neg (\text{isVal}\ e)$
+
+In the \ha{TSub} case we note that \lh knows that
+the argument \ha{_e} is equal to
+the subtyping parameter \ha{e}.
+%
+The termination checker ensures
+the inductive call happens on a smaller
+derivation subtree.
+%
+The \ha{TPrim} case is by contradiction since
+primitives cannot step:
+%
+we proved values cannot step
+in the \ha{lemValStep} lemma, which
+is combined 
+via the \ha{(?)} combinator of type \ha{a ->  b ->  a}
+with the fact that \ha{e} is a value
+to allow the call of the false-precondition \ha{impossible}.
+
+\lh's totality checker ensures
+all cases of \ha{HasTyEv} are covered
+and the termination checker ensures
+the proof is well-founded. %(There are no
+%size bounds on \ha{ProofOf (HasType Empty e' t)}
+%as the preservation lemma does not use any
+%co-finitely quantified rules.)
+
+\begin{fullversion}
+  \mypara{Progress (Theorem~\ref{lem:progressF})}
+  ensures that a well-typed expression is a value
+  \textit{or} there exists an expression to which
+  it steps.
+  %
+  To express this claim we used Haskell's \ha{Either}
+  to encode disjunction that contain pairs (refined to be dependent)
+  to encode existentials.
+  %
+  % progress :: Expr -> Type -> HasType -> Either () (Expr,Step)
+  %
+  \begin{mcode}
+  progress :: e:Expr -> t:Type -> HasTy Empty e t 
+                     -> Either {isVal e}  (e'::Expr, Step e e')
+  progress _ _ (TSub Empty e t' t e_has_t' _) = progress e t' e_has_t'
+  progress _ _ (TPrim _ _)                    = Left ()
+  progress _ _ (TAbs {})                      = Left ()
+  ...
+  \end{mcode}
+  %
+  The proofs of the \ha{TSub} and \ha{TPrim}
+  cases are easily done by, respectively,
+  an inductive call and establishing is-Value.
+  %
+  The more interesting cases require us to case-split
+  on the inductive call in order to get access
+  to the existential witness.
+\end{fullversion}
+
+% Note: condensed into the Coq Section
+%\mypara{Soundness (Theorem~\ref{lem:soundness})}
+%ensures that a well-typed expression will not get stuck,
+%that is, it will either reach a value or keep evaluating.
+%
+%\begin{conference}
+%  To express this claim we used Haskell's \ha{Either}
+%  to encode disjunction that contain pairs (refined to be dependent)
+%  to encode existentials.
+%\end{conference}
+%
+%We reify evaluation sequences with a refined data
+%proposition \ha{Steps e$_0$ e} with a reflexive
+%and a transitive (recursive) constructor.
+%
+%Our soundness proof goes by induction on the
+%evaluation sequence.
+%
+%\begin{mcode}
+%  soundness :: e$_0$:Expr -> t:Type -> e:Expr -> HasTy Empty e$_0$ t -> Steps e$_0$ e
+%                          -> Either {isVal e}  (e$_i$::Expr, Step e e$_i$)
+%  soundness _e$_0$ t _e e$_0$_has_t e$_0$_evals_e = case e$_0$_evals_e of
+%     Refl e$_0$ -> progress e$_0$ t e$_0$_has_t       -- $\cmt{e_0 = e}$
+%     AddStep e$_0$ e$_1$ e$_0$_step_e$_1$ e e$_1$_eval_e ->  -- $\cmt{e_0 \step \evalsTo{e_1}{e}}$
+%       soundness e$_1$ t e (preservation e$_0$ t e$_0$_has_t e$_1$ e$_0$_step_e$_1$) e$_1$_eval_e
+%\end{mcode}
+%
+%The reflexive case is proved by \ha{progress}.
+%In the inductive case the evaluation
+%sequence is $e_0 \step \evalsTo{e_1}{e}$
+%and the proof goes by induction,
+%using preservation to ensure that
+%$e_1$ is typed.
+
+
+\subsection{Quantitative Results}
+\label{subsec:quantitiative}
+
+We provide a mechanically checked
+proof of the type safety in~\S~\ref{sec:soundness}, 
+that only assumes the requirements
+\ref{lem:prim-typing} and \ref{lem:implication}. 
+%
+%The only facts that are assumed are 
+%Req. \ref{lem:implication}, \ie the implication interface
+%which we encoded as a data proposition, 
+%and 
+%Req. \ref{lem:prim-typing}, \ie assumptions about built-in primitives. 
+Concretely, we assumed the primitives \Cref{lem:prim-typing} for some 
+constants of \sysrf because 
+it was too strenuous to mechanically prove 
+without interactive aid. 
+%
+In \lh type denotations (of \Cref{fig:den}) 
+cannot be currently encoded: 
+since they include $\forall$-quantification
+they could only be encoded as data propositions, 
+but the strictly-positive-occurrence checker 
+rejects the definition of the function denotation. 
+Due to this limitation, 
+we can neither define the denotational implementation
+of the implication (\S~\ref{sec:typing:implication:denotational})
+nor prove 
+the denotational soundness (\Cref{lem:denote-sound-first}). \NV{CHECK}
+
+
+% \newtext{
+  \mypara{Representing Binders}
+One main challenge in the mechanized
+metatheory is the syntactic representation
+of variables and binders~\cite{Aydemir05}.
+%
+The \emph{named} representation
+has severe difficulties because
+of variable capturing substitutions
+and the \emph{nameless} (\aka de Bruijn)
+requires heavy index shifting.
+%
+The variable representation
+of $\sysrf$ is
+\emph{locally nameless representation}~\cite{Pollack93,AydemirCPPW08},
+where free variables are named, but
+bound variables are represented by
+%syntactically distinct 
+deBruijn indices.
+%
+Our mechanization still resembles
+the paper and pencil proofs (performed
+before  mechanization),
+yet it clearly addresses
+the following two problems with named bound variables.
+%
+First, when different refinements are strengthened
+(as in \Cref{fig:type-subst}) the variable
+capturing problem reappears
+because we are substituting underneath a binder.
+%
+Second, subtyping usually permits
+alpha-renaming of binders,
+which breaks a required invariant
+that each \sysrf derivation tree
+is a valid \sysf tree after erasure. \\
+% }
+
+\begin{fullversion}
+\mypara{Representing Binders}
+%
+In our mechanization, we use the
+\emph{locally-nameless representation} \cite{AydemirCPPW08,Chargueraud12}.
+%
+Free variables and bound variables
+are taken to be separate syntactic
+objects, so we do not need to worry
+about alpha renaming of free variables
+to avoid capture in substitutions.
+%
+We also use de Bruijn indices only
+for bound variables. This enables us to avoid
+taking binder names into account in the
+$\mathsf{strengthen}$ function used to define
+substitution (\Cref{fig:type-subst}).
+%
+% While the uniqueness of names in the environment
+% is convenient for the mechanized metatheory,
+% it comes at the cost of renaming lemmas that
+% let us change the name of bound variables.
+% %
+% In \S~\ref{sec:related} we discuss another
+% approach to the mechanization \cite{AydemirCPPW08}
+% that avoids the frequent use of renaming.
+%
+\end{fullversion}
+
+\Cref{fig:empirical} summarizes the development 
+of our metatheory,
+which was checked using \lh 8.10.7.1
+and a Lenovo ThinkPad T15p laptop with
+an Intel Core i7-11800H processor.
+%with 8 physical cores and 32 GB of RAM.
+%
+Our mechanized proofs are substantial. The entire
+\lh development comprises over 12,800 lines \NV{CHECK these numbers are outdated? cannot find them in the table}
+across about 35 files. 
+%
+Currently, the whole \lh proof can be checked
+in 29 minutes, which makes interactive
+development difficult, especially compared to 
+the \coq proof (\S~\ref{sec:coq}) that 
+is checked in about 60 seconds.
+%
+While incremental modular checking provides
+a modicum of interactivity, improving the
+ergonomics of \lh, 
+\ie verification time and 
+actionable error messages, remains an important
+direction for future work.
+
+\begin{table}
+% \begin{center}
+\setlength{\tabcolsep}{10pt}
+\scalebox{0.90}{
+\begin{tabular}{ lrrrr|rrr  }
+  \multicolumn{1}{l}{ } & 
+  \multicolumn{4}{c|}{\lh Mechanization} & 
+  \multicolumn{3}{l}{\coq Mechanization} \\
+  \toprule
+  \textbf{Subject} & \textbf{Files} & \textbf{Time (m)} &
+  \textbf{Spec} & \textbf{Proof} &  
+  \textbf{Files} & \textbf{Spec} & \textbf{Proof} \\
+  \hline
+  Definitions             & 6      &  1     & 1805  &  374  & 7      &  941  &  190 \\
+  Basic Properties        & 8      &  4     &  646  & 2117  & 8      & 1201  & 2360 \\
+  $\sysf$ Soundness       & 4      &  3     &  138  &  685  & 4      &  173  &  773 \\
+  Weakening               & 4      &  1     &  379  &  467  & 4      &  110  &  568 \\
+  Substitution            & 4      &  7     &  458  &  846  & 4      &  158  &  859 \\
+  Exact Typing            & 2      &  4     &   70  &  230  & 2      &   33  &  182 \\
+  Narrowing               & 1      &  1     &   88  &  166  & 1      &   54  &  262 \\
+  Inversion               & 1      &  1     &  124  &  206  & 1      &   57  &  258 \\
+  Primitives              & 3      &  4     &  120  &  277  & 3      &   89  &  508 \\
+  $\sysrf$ Soundness      & 1      &  1     &   14  &  181  & 1      &   12  &  233 \\
+  Denotational Soundness  & -      &  -     &    -  &    -  & 13     &  815  & 3010 \\
+  \midrule
+  \textbf{Total}          & 35     & 29     & 3842  & 5549  & 49     & 3643  & 9203 \\
+  \bottomrule
+\end{tabular}
+}
+% \end{center}
+\caption{Quantitative mechanization details. We split each development into sets of
+         modules pertaining to regions of \Cref{fig:graph} and for each we
+         count lines of specification (definitions, lemma statements)
+         and of proof.}
+\label{fig:empirical}
+\vspace{-0.00cm}
+\end{table}

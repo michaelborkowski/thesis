@@ -1,0 +1,261 @@
+\chapter{\lh \& Refined Data Propositions}
+\label{ch:data-props}
+
+In Chapter~\ref{ch:implementation} we will present how 
+we proved 
+\sysrf soundness in \lh. 
+%
+To do so, we developed \textit{refined data propositions}, 
+a novel feature of \lh that made such 
+a meta-theoretic proof possible. 
+%% NEW
+Although \lh had been previously used to prove theorems
+inductively about provably terminating user defined 
+functions, these extensions were needed to 
+reason about potentially non-terminating properties, 
+such as the typing judgment of \sysrf.
+%%
+
+
+\section{\lh}
+\lh's core proof system is \sysrf, 
+that is, it is using the typing judgement 
+presented in Figure~\ref{fig:t} to check whether a Haskell program 
+satisfies its refinement type annotations.
+%
+The expression language checked by \lh is GHC's intermediate language 
+(\coresyn~\cite{coresyn}) which is a superset of \sysrf that also includes 
+literals, datatypes, and coercions. Thus, \lh's typing judgement is extended to 
+include these constructs. 
+%
+To guess the unknown types of Figure~\ref{fig:t} (\ie in the rules \tSub and \tLet)
+and make the typing judgment algorithmic,
+\lh  implements the refinement type inference algorithm of 
+liquid types~\cite{LiquidPLDI08}.
+%
+To check the implications \lh uses the \iLog 
+rule of~\S~\ref{sec:typing:implication:logical}
+which are automatically discharged by an SMT solver.
+% }
+
+% \newtext{
+\paragraph{\lh as a Theorem Prover}
+Equipped with the SMT solver, \lh can be used to prove theorems 
+over theories known to the SMT solver.
+For example, that addition over integers is associative 
+and that for every integer there exists a larger one, 
+as encoded by the below functions: 
+% }
+\begin{mcode}
+  assoc :: x:Int -> y:Int -> {v:() | x + y == y + x } 
+  assoc _ _ = () 
+  
+  exLg :: x:Int -> (y::Int,{v:() | y > x })
+  exLg x = (x+1, ())   
+\end{mcode}
+%
+% \newtext{
+These definitions use lambda abstraction and dependent pairs 
+to respectively encode the universal and existential quantifiers.
+To encode logical terms, such as \texttt{y > x}, they refine the unit type 
+with such terms. 
+Building upon this idea, \lh has been extensively used 
+to prove theorems, using recursive Haskell definitions to 
+encode inductive proofs and refinement reflection~\cite{Vazou18}
+to allow user-defined terminating functions into the refinement logic. 
+Yet, the proving power of \lh was limited because 
+only provably terminating functions can be used in the refinement logic
+and the proofs were implicitly performed by the SMT solver.  
+Thus, the programmer could not inspect the proof terms. 
+% }   
+
+\section{Refined Data Propositions}
+\label{sec:data-props}
+%
+Refined data propositions encode \coq-style
+inductive predicates in \lh by refining Haskell's 
+data types, allowing the programmer to write plain
+Haskell functions to provide constructive proofs 
+for user-defined propositions.
+Here, for exposition, we present the four steps we followed  
+in the mechanization of \sysrf to 
+define the ``has-type'' proposition
+and then use it to type the primitive one. 
+
+\mypara{Step 1: Reifying Propositions as Data}
+%
+Our first step is to represent the propositions
+of interest as plain Haskell data.
+%
+For example, we can define the following types 
+(suffixed \ha{Pr} for ``proposition''):
+%
+\begin{mcode}
+    data HasTyPr   = HasTyPr    Env  Expr Type
+    data IsSubTyPr = IsSubTyPr  Env  Type Type
+\end{mcode}
+%
+Thus, \ha{HasTyPr $\Gamma$ e t} and \ha{IsSubTyPr $\Gamma$ s t}
+respectively represent the \emph{propositions} 
+$\hastype{\Gamma}{e}{t}$ and 
+$\isSubType{\Gamma}{s}{t}$,
+which say
+that \ha{e} can be typed as \ha{t} under environment $\Gamma$ and
+that \ha{t} is a subtype of \ha{t'} under $\Gamma$.
+
+\mypara{Step 2: Reifying Evidence as Data}
+%
+Next, we reify evidence, \ie \emph{derivation trees}
+as data by defining Haskell data types with a
+\emph{single constructor per derivation rule}.
+%
+For example, we define the data type \ha{HasTyEv}
+to encode the typing rules of~\Cref{fig:t}, 
+with constructors that match the names of each rule.
+%
+\begin{mcode}
+  data HasTyEv where
+    TPrim :: Env ->Prim ->HasTyEv
+    TSub  :: Env ->Expr ->Type ->Type ->HasTyEv ->IsSubTyEv ->HasTyEv
+    ...
+\end{mcode}
+Using these data one can construct derivation trees. 
+For instance,  
+\ha{TPrim Empty (PInt 1) :: HasTyEv} is the tree that types 
+the primitive one under the empty environment. 
+
+\mypara{Step 3: Relating Evidence to its Propositions}
+%
+Next, we specify the relationship between the evidence and the proposition
+that it establishes, via a refinement-level \emph{uninterpreted function}:
+%that maps evidence to its corresponding proposition:
+%
+\begin{mcode}
+  measure hasTyEvPr   :: HasTyEv ->HasTyPr
+  measure isSubTyEvPr :: IsSubTyEv ->IsSubTyPr
+\end{mcode}
+%
+The above signatures declare that \ha{hasTyEvPr} (resp. \ha{isSubTyEvPr})
+is a refinement-level function that maps has-type (resp. is-subtype)
+evidence to its corresponding proposition.
+%
+We can now use these uninterpreted functions to define \emph{type aliases}
+that denote well-formed evidence that establishes a proposition.
+%
+For example, consider the (refined) type aliases
+%
+\begin{mcode}
+  type HasTy   $\Gamma$ e t = {ev:HasTyEv   | hasTyEvPr ev == HasTyPr $\Gamma$ e t }
+  type IsSubTy $\Gamma$ s t = {ev:IsSubTyEv | isSubTyEvPr ev == IsSubTyPr $\Gamma$ s t }
+\end{mcode}
+%
+The definition stipulates that the type \ha{HasTy $\Gamma$ e t}
+is inhabited by evidence (of type \ha{HasTyEv}) that
+establishes the typing proposition \ha{HasTyPr $\Gamma$ e t}.
+%
+Similarly \ha{IsSubTy $\Gamma$ s t} is inhabited by evidence
+(of type \ha{IsSubTyEv}) that establishes the subtyping
+proposition \ha{IsSubTyPr $\Gamma$ s t}.
+%
+Note that the first three steps have only defined separate data types
+for propositions and evidence, and \emph{specified} the relationship
+between them via uninterpreted functions in the refinement logic.
+
+\mypara{Step 4: Refining Evidence to Establish Propositions}
+%
+Finally, we \emph{implement} the relationship between
+evidence and propositions \emph{refining} the types of the evidence
+data constructors (rules) with pre-conditions that require
+the rules' premises and post-conditions that ensure
+the rules' conclusions.
+%
+For example, we connect the evidence and proposition for the
+typing relation by refining the data constructors for \ha{HasTyEv}
+using their respecting typing rule
+from ~\Cref{fig:t}.
+%
+\begin{mcode}
+  data HasTyEv where
+    TPrim :: $\Gamma$:Env ->c:Prim ->HasTy $\Gamma$ (Prim c) (ty c)
+    TSub  :: $\Gamma$:Env ->e:Expr ->s:Type ->t:Type 
+          ->HasTy $\Gamma$ e s ->IsSubTy $\Gamma$ s t ->HasTy $\Gamma$ e t
+    ...
+\end{mcode}
+%
+The constructors \ha{TPrim} and \ha{TSub} respectively
+encode the rules \tPrim and \tSub (with 
+well-formedness elided for simplicity).
+%
+The refinements on the input types, 
+which encode the premises of the rules,
+are checked whenever these constructors are used. 
+The refinement on the 
+output type (being evidence of a specific proposition)
+is axiomatized to encode the conclusion of the rules.
+%
+For example, the type for \ha{TSub}
+says that ``for all $\Gamma, e, s, t$,
+given evidence that $\hastype{\Gamma}{e}{s}$ and $\isSubType{\Gamma}{s}{t}$'',
+the constructor returns ``evidence that $\hastype{\Gamma}{e}{t}$''.
+
+\begin{fullversion}
+
+\mypara{Programs as Constructive Proofs}
+%
+Thus, the constructor refinements crucially ensure that only well-formed pieces of evidence
+can be constructed, and simultaneously, precisely track the proposition established
+by the evidence.
+%
+This lets the programmer write plain Haskell terms as constructive proofs, and \lh ensures
+that those terms indeed establish the proposition stipulated by their type.
+%
+For example, the below Haskell term is proof that the literal \ha{1} has the type
+$\breft{\Int}{\vv}{\vv = 1}$
+%
+\begin{mcode}
+  oneTy :: HasTy Empty (EPrim (PInt 1)) {v:Int | v == 1}
+  oneTy = TPrim Empty (PInt 1)
+\end{mcode}
+%
+If instead, the programmer wrote
+\ha{oneTy = TPrim Empty (PInt 2)}, \lh would reject  
+this
+%the program 
+as the modified evidence does not establish
+the proposition described in the type.
+%
+\end{fullversion}
+
+% As an example, below we use the primitive and subtyping constructors
+% to construct the witness (equivalently derivation tree) that \ha{1}
+% is a positive integer.
+% %
+% \begin{mcode}
+%     onePos :: HasTy Empty (EPrim (PInt 1)) {v:Int | 0 < v}
+%     onePos = TSub Empty (EPrim (PInt 1))
+%                   {v:Int | 1 = v} (TPrim Empty (PInt 1)) -- $\cmt{\hastype{\varnothing}{1}{\breft{\tint}{\vv}{\vv = 1}}}$
+%                   {v:Int | 0 < v} (SBase ...) -- $\cmt{\isSubType{\varnothing}{\breft{\tint}{\vv}{\vv = 1}}{\breft{\tint}{\vv}{0 < \vv }}}$
+% \end{mcode}
+
+\mypara{Implementation of Data Propositions}
+Data propositions are a novel feature required to encode 
+inductive propositions in
+the mechanization of \sysrf. 
+(\citet{lweb} developed a \lh metatheoretic proof  
+but before data propositions and thus had to axiomatize a terminating 
+evaluation relation; see~\S~\ref{ch:related}.)
+%
+% \newtext{
+Refined data propositions are implemented as part of \lh's existing 
+refined data types that already supported subtyping on constructor arguments 
+using variant and contravariant rules, as described but not formalized in~\cite{sprite}. 
+The essential extension to support data propositions is that by refining the output types 
+of inductive data types, \lh can support constructive derivation-tree-style proofs.
+% }                                              
+%
+To use this feature in practice, we had to extend the refinement logic 
+of \lh to use existing SMT support to make data constructors \emph{injective}, 
+\ie if $C$ is a constructor then $\forall x, y.\, C(x) = C(y) => x = y$.
+Thus, refined data types and injectivity are the two required 
+components to implement data propositions.
+

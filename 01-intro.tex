@@ -1,0 +1,270 @@
+\chapter{Introduction}
+\label{ch:intro}
+
+Refinements constrain types with logical predicates
+to specify new concepts.
+%
+For example, the refinement type
+$\tpos \defeq \breft{\tint}{\vv}{0 < v}$
+describes \emph{positive} integers
+and $\tnat \doteq \breft{\tint}{\vv}{0 \leq v}$
+specifies natural numbers.
+%
+Refinement types have been successfully
+used to specify various properties
+like secrecy \citep{FournetCCS11},
+resource usage \citep{Knoth20}, or
+information flow \citep{STORM}
+that can then be verified in programs
+developed in various programming
+languages like Haskell~\citep{Vazou14},
+Scala~\citep{kuncak-stainless}, and
+Racket~\citep{RefinedRacket}.
+
+%
+The success of refinement types
+relies on the combination of two
+essential features.
+%
+First, \textit{implicit} semantic
+subtyping uses semantic (SMT-based)
+reasoning to automatically convert
+the types of expressions without
+hassling the programmer for explicit type
+casts.
+%
+For example, consider a positive expression
+$e : \tpos$ and a function expecting natural
+numbers $f:\funcftype{\tnat}{\tint}$.
+%
+To type check the application $f\ e$,
+the refinement type system will implicitly
+convert the type of $e$ from \tpos to \tnat,
+because $0 < v \Rightarrow 0 \leq v$
+holds semantically.
+%
+Importantly, refinement types propagate
+semantic subtyping inside type constructors
+to, for example, treat function arguments in
+a contravariant manner.
+%
+Second, \textit{parametric polymorphism}
+allows the propagation of the refined types
+through polymorphic function interfaces,
+without the need for extra reasoning.
+%
+As a trivial example, once we have
+established that $e$ is positive,
+parametric polymorphism should let
+us conclude that $g\ e : \tpos$ if,
+for example, $g$ is the identity function
+$g:\funcftype{a}{a}$.
+As a more interesting example, in~\S~\ref{sec:overview:primes}     % TOFIX
+we combine semantic subtyping and polymorphism
+to verify a safe-indexing array of prime numbers.
+
+The engineering of practical refinement
+type checkers has galloped far ahead of
+the development of their metatheoretical
+foundations.
+%
+In fact, semantic subtyping is very tricky
+as it is mutually defined with typing,
+leading to metatheoretic proofs with
+circular dependencies (\Cref{fig:dependencies}).
+%
+Unsurprisingly, the addition of polymorphism
+poses further challenges.
+%
+As \citet{SekiyamaIG17} observe, a na\"ive definition
+of type instantiation can lose potentially contradicting
+refinements leading to unsoundness.
+%
+Existing formalizations of refinement types
+drop semantic subtyping~\citep{SekiyamaIG17,kuncak-stainless}
+or polymorphism~\citep{flanagan06, newfstar},
+or have problematic metatheory~\citep{Belo11}.
+
+
+In this dissertation we formalize \sysrf, a core calculus
+with a refinement type system that combines semantic
+subtyping with polymorphism, via six concrete contributions.
+%
+But first, we begin in \Cref{ch:overview} with an overview 
+of refinement types, giving examples of their applications
+and discussing their essential features. 
+%
+In \S~\ref{sec:related} we survey the     
+related work on the metatheory of 
+refinment types.
+%
+We conclude this
+chapter in \S~\ref{sec:overview:soundness}          % TOFIX
+by outlining the challenges we encountered in attempting to
+prove the soundness of \sysrf and how we addressed each of them.
+
+\mypara{1. Reconciliation}
+%
+In \Cref{ch:language} we introduce            % Lang && Static Sem
+our first contribution: a language
+that combines refinements and polymorphism
+in a way that ensures the metatheory remains sound
+without sacrificing the expressiveness needed
+for practical verification.
+%
+To this end, \sysrf introduces a kind
+system that distinguishes the type
+variables that can be soundly refined
+(without the risk of losing refinements
+at instantiation) from the rest,
+which are then left unrefined.
+%
+In addition our design includes
+a form of existential typing \cite{Knowles09}
+which is essential to \emph{synthesize} the types
+-- in the sense of bidirectional typing -- for applications
+and let-binders in a compositional manner 
+(\S~\ref{sec:language}, \ref{sec:lang:static}).             % TOFIX
+
+\mypara{2. Foundation}                      % Soundness
+%
+Our second contribution,
+described in \Cref{ch:soundness},
+is to establish the foundations
+of \sysrf by proving soundness,
+which says that well-typed expressions cannot get stuck
+and belong to the denotation of their type 
+(\S~\ref{sec:soundness}).                                   % TOFIX
+%which says that if $e$ has a type, then
+%either $e$ is a value or it can
+%step to another term of the same type.
+%
+%Our second contribution is to establish the foundations
+%of \sysrf by defining a notion of type denotations and using
+%it to prove two key properties: first, \emph{denotational}
+%soundness which says that if an expression $e$ has type $t$,
+%then $e$ belongs in the denotation of the type $t$, and second,
+%\emph{evaluation} soundness that either $e$ is a value or it can
+%step to another term of the same type.
+%
+The combination of semantic subtyping, polymorphism,
+and existentials makes the soundness proof challenging
+with circular dependencies that do not arise in standard
+(unrefined) calculi.
+%
+The mechanization was simplified by the use of
+two essential ingredients.
+%
+First, we use an unrefined \emph{base} language
+\sysf, a classic System F \cite{TAPL}, in rules
+where refinements are not required, cutting two potential
+circularities in the static judgments (\Cref{fig:dependencies}).
+Second, we define an \emph{implication interface}
+that abstractly specifies the properties of implication
+required to prove type soundess, and show how this interface
+can be implemented via denotational semantics 
+(\S~\ref{sec:typing:implication}).                          % TOFIX
+
+\mypara{3. Reification}                     % Data Props
+%
+Our third contribution,
+presented in \Cref{ch:data-props}, is to introduce 
+\textit{data propositions}, a novel feature in \lh
+that enables the encoding of derivation trees for inductively
+defined judgments as refined data types, by first reifying
+the propositions and evidence as plain Haskell data, and then
+using refinements to connect the two.
+%
+Hence, data propositions let us write plain Haskell functions
+over refined data to provide explicit, 
+constructive proofs (\S~\ref{sec:data-props}).              % TOFIX
+%
+Without data propositions reasoning about
+potentially non-terminating computations was not possible in \lh,
+thereby precluding even simple
+metatheoretic developments such as the soundness
+of \sysf let alone \sysrf.
+
+\mypara{4. Mechanization}                   % Mechanization
+%
+\Cref{ch:implementation} describes another contribution:
+we mechanized the metatheory
+of \sysrf \emph{twice}: using \lh and \coq.
+%
+We formalized \sysrf in \lh (\S~\ref{sec:implementation:lh}) % TOFIX
+to evaluate the feasibility of such
+substantial metatheoretical formalizations.
+%Our \lh formalization uses data propositions and recursive
+%Haskell functions on derivation
+%trees to produce explicit witnesses that correspond
+%to proofs of our soundness theorems~\cite{Vazou18}.
+%
+Our proof is non-trivial, requiring 9,400 lines
+of code, 30 minutes to verify, and various modifications
+in the  internals of \lh.
+%
+We translated the same proof 
+to \coq (\S~\ref{sec:implementation:coq})             % TOFIX
+to compare the two alternatives.
+%
+Certain definitions, concretely the type denotations,
+not admissible by \lh's positivity checker,
+were possible to define in \coq using Equations~\cite{10.1145/3341690}.
+%
+Further, the \coq development is
+much faster (about 60 seconds to verify),
+but it is also more difficult to manipulate various
+partial and mutual recursive definitions of the formalization.
+%
+Finally, \coq comes with stronger foundational
+soundness guarantees than \lh.
+%
+While the metatheory of \coq is well studied,
+\sysrf lays the foundation for the mechanized metatheory of \lh.
+
+%Although it was possible, and perhaps simpler,
+%to re-implement our mechanization with a
+%specialized proof assistant and tactics,
+%and although a fully verified \coq mechanization
+%provides a high level of confidence in the
+%correctness and soundness of our proof,
+%to the community at large,
+%our contribution here is to show that a large
+%\coq development is also feasible
+%purely as a (refined) Haskell program with
+%a similar proof structure.
+%
+%Indeed, we show that substantial meta-theoretical
+%formalizations over arbitrary computations
+%are feasible via data propositions via
+%\lh-style refinement typing (\S~\ref{sec:implementation}).
+
+\mypara{5. Data Types}                     % Lists
+%
+Our next contribution,
+described in \Cref{ch:lists},
+is to add data types to \sysrf in the form of
+lists that are equipped with a length measure.
+%
+For instance, the programmer can write a safe polymorphic 
+tail function that requires its input to be a non-empty
+list (length at least one).
+%
+The addition of lists to our language, which we denote
+by \sysrfd,
+adds new complexity to our metatheory.
+%
+A case switch operator enables path-sensitive reasoning when
+destructing lists and leads to challenging new cases for our
+soundness theorems.
+
+\mypara{6. Bidirectional Typing Algorithm} % Bidirectional Typing
+%
+Our final contribution,
+presented in \Cref{ch:bidirectional},
+is to present a bidirectional typing algortihm, which emits
+\emph{verification conditions (VCs)}. If we restrict the syntax
+of our refinement predicates to a decidable logic, then these VCs 
+can be checked or rejected by an SMT solver. Thus, like \lh,
+\sysrfd can be decidably typechecked without placing severe 
+restrictions on the user. 

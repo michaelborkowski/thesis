@@ -1,0 +1,71 @@
+\chapter{Proofs of System RF Soundness}
+\label{ch:proofs}
+
+We present the proofs in this appendix in the same order 
+
+\mypara{Inversion of Typing Judgments.} 
+In the yellow region of Figure \ref{fig:graph}, we discuss how the fact that the typing judgment is no longer syntax-directed leads to an involved proof for the inversion lemma below. First, we need a lemma about subtyping:
+
+\begin{lemma}
+    {\em Transitivity of Subtyping}: If $\isWellFormed{\tcenv}{t}{k}$, $\isWellFormed{\tcenv}{t'}{k'}$, $\isWellFormed{\tcenv}{t''}{k''}$, and $\vdash_w \tcenv$ and $\isSubType{\tcenv}{t}{t'}$ and $\isSubType{\tcenv}{t'}{t''}$ then $\isSubType{\tcenv}{t}{t''}$. (LemmasTransitive.hs) Our ${\tt lem\_sub\_trans}$ depends on ${\tt lem\_subst\_sub}$.
+\end{lemma}
+
+\begin{proof}
+    We proceed by induction on the combined size of the derivation trees of $\tcenv \vdash t' <: t'$ and $\tcenv \vdash t' <: t''$.
+    We first consider the cases where none of $t, t',$ or $t''$ are existential types. By examination of the subtyping rules, we see that $t$, $t'$, and $t''$ must have the same form, and so there are three such cases:
+    
+    \pfcase{Refinement types}: 
+    In this case $t \equiv b\{x_1\col p_1\}$, $t' \equiv b\{x_2\col p_2\}$, and $t'' \equiv b\{x_3\col p_3\}$. The last rule used in each of $\tcenv \vdash t' <: t'$ and $\tcenv \vdash t' <: t''$ must have been {\sc S-Base}. Inverting each of these we have
+    \begin{equation}
+    \entails{y\bindt b\{x_1\col p_1\}, \tcenv}{p_2[y/x_2]} \;\;\;\;{\rm and}\;\;\;\; \entails{z\bindt b\{x_2\col p_2\}, \tcenv}{p_3[z/x_3]}
+    \end{equation}
+    for some $y,z \not\in\dom{\tcenv}$. We can invert {\sc Ent-Pred}  to get
+    \begin{equation}
+    \forall \theta.\, \theta \in\lb y\bindt b\{x_1\col p_1\}, \tcenv\rb \Rightarrow \theta(p_2[y/x_2]) \steps \ttrue
+    \end{equation}and\begin{equation}
+    \forall \theta.\, \theta \in\lb y\bindt b\{x_2\col p_2\}, \tcenv\rb \Rightarrow \theta(p_3[y/x_3]) \steps \ttrue.
+    \end{equation}
+    where we also use the change of free variables lemma in the last equation.
+    Let $\theta \in\lb y\bindt b\{x_1\col p_1\}, \tcenv\rb$. 
+    Let $v = \theta(y)$ Then $v \in \lb \theta(b\{x_1\col p_1\})\rb,$ and so $v \in \lb \theta(b\{x_2\col p_2\})\rb$ by the Denotational Soundness Lemma. Then $\theta \in\lb y\bindt b\{x_2\col p_2\}, \tcenv\rb$ also, and so 
+    $\theta(p_3)[y/x_3] \steps \ttrue.$
+    Therefore we can conclude that
+    \begin{equation}
+        \entails{y\bindt b\{x_1\col p_1\}, \tcenv}{p_3[y/x_3]}
+    \end{equation} 
+    and thus that $\isSubType{\tcenv}{b\{x_1\col p_1\}}{b\{x_3\col p_3\}}$.
+    
+    \mypara{Case function types}: 
+    In this case $t \equiv \functype{x_1}{s_1}{t_1}$, $t' \equiv \functype{x_2}{s_2}{t_2}$, and $t'' \equiv \functype{x_3}{s_3}{t_3}$. The last rule used in each of $\tcenv \vdash t' <: t'$ and $\tcenv \vdash t' <: t''$ must have been {\sc S-Func}. Inverting each of these we have
+    \begin{equation*}
+    \isSubType{\tcenv}{s_2}{s_1}, \;\;\; \isSubType{\tcenv}{s_3}{s_2}, \;\;\;
+    \isSubType{y\bindt s_2, \tcenv}{t_1[y/x_1]}{t_2[y/x_2]}, \;\;{\rm and} \;\;
+    \isSubType{z\bindt s_3, \tcenv}{t_2[z/x_2]}{t_3[z/x_3]}
+    \end{equation*}
+    for some $y,z \not\in\dom{\tcenv}$. By the inductive hypothesis we can combine the first two judgments to get $\isSubType{\tcenv}{s_3}{s1}$. By the narrowing lemma (see below) and the change of variables lemma we have $\isSubType{z\bindt s_3, \tcenv}{t_1[z/x_1]}{t_2[z/x_2]}$; then we conclude by the inductive hypothesis that $\isSubType{z\bindt s_3, \tcenv}{t_1[z/x_1]}{t_3[z/x_3]}$. 
+    Then by rule {\sc S-Func} we conclude that $\isSubType{\tcenv}{\functype{x_1}{s_1}{t_1}}{\functype{x_3}{s_3}{t_3}}$.
+    The well-formedness judgments required to apply the inductive hypothesis can be constructed by inverting $\isWellFormed{\tcenv}{t}{*}$, $\isWellFormed{\tcenv}{t'}{*}$, and $\isWellFormed{\tcenv}{t''}{*}$ and using the change of free variables and narrowing lemmas (for well-formedness).
+    
+    \mypara{Case polymorphic types}: In this case $t \equiv \polytype{\al_1}{k_1}{t_1}$, $t' \equiv \polytype{\al_2}{k_1}{t_2}$, and $t'' \equiv \polytype{\al_3}{k_1}{t_3}$. The last rule used in each of $\tcenv \vdash t' <: t'$ and $\tcenv \vdash t' <: t''$ must have been {\sc S-Poly}. Inverting each of these we have
+    \begin{equation*}
+    \isSubType{\al\bindt k_1, \tcenv}{t_1[\al/\al_1]}{t_2[\al/\al_2]}, \;\;\;{\rm and} \;\;\;
+    \isSubType{\al'\bindt k_1, \tcenv}{t_2[\al'/\al_2]}{t_3[\al'/\al_3]}
+    \end{equation*}
+    for some $\al,\al' \not\in\dom{\tcenv}$. By the change of variables lemma, 
+    we have $\isSubType{\al\bindt k_1, \tcenv}{t_2[\al/\al_2]}{t_3[\al/\al_3]}$. By the inductive hypothesis we can conclude that
+    $\isSubType{\al\bindt k_1, \tcenv}{t_1[\al/\al_1]}{t_3[\al/\al_3]}$
+    and thus
+    $\isSubType{\tcenv}{\polytype{\al_1}{k_1}{t_1}}{\polytype{\al_3}{k_1}{t_3}}$.
+    The well-formedness judgments required to apply the inductive hypothesis can be constructed by inverting $\isWellFormed{\tcenv}{t}{*}$, $\isWellFormed{\tcenv}{t'}{*}$, and $\isWellFormed{\tcenv}{t''}{*}$ and using the change of free variables lemma.
+
+    \mypara{Case $t''$ }
+
+    \mypara{}
+
+    \mypara{}
+    
+    \end{proof}
+
+\begin{lemma}
+    {\em Inversion of TAbs/TAbsT}: If $\hastype{\tcenv}{(\lambda w. e)}{x\bindt t_x->t}$ and $\vdash_w \tcenv$ then there exists $y \not\in \dom(\tcenv)$ such that $\hastype{y\bindt tx,\tcenv}{e[y/w]}{t[y/x]}$.  If $\hastype{\tcenv}{(\Lambda a_1\bindt k_1. e)}{\forall a\bindt k. t}$ and $\vdash_w \tcenv$ then exists $a' \not\in \dom(\tcenv)$ such that $\hastype{a'\bindt k,\tcenv}{e[a'/a_1]}{t[a'/a]}$. %(LemmasInvertLambda.hs) Both of these depend on ${\tt lem_sub_trans}$. Our ${\tt lem\_invert\_tabs}$ depends on ${\tt lem\_narrow\_typ}$, which in turn depends on ${\tt lem\_exact\_type}$.
+\end{lemma}

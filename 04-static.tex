@@ -1,0 +1,1048 @@
+\section{Static Semantics}
+\label{sec:lang:static}
+
+The static semantics of our calculi comprise
+four main judgment forms:
+%
+(\S~\ref{sec:typing:wf}) {\emph{well-formedness}} judgments that determine when a type
+or environment is syntactically well-formed (in $\sysf$ and $\sysrf$);
+%
+(\S~\ref{sec:typing:typ}) {\emph{typing}} judgments that stipulate that a term has
+a particular type in a given context (in $\sysf$ and $\sysrf$);
+%
+(\S~\ref{sec:typing:sub}) {\emph{subtyping}} judgments that establish when one type can
+be viewed as a subtype of another (in $\sysrf$); and
+%
+(\S~\ref{sec:typing:implication}) {\emph{implication}} judgments that establish when one predicate
+implies another (in $\sysrf$).
+%
+Next, we present the static semantics of \sysrf by describing
+the rules that establish 
+each of these judgments.
+%
+We use $\greybox{\mbox{grey}}$ to highlight the antecedents and rules
+%needed for refinements in $\sysrf$.
+specific to $\sysrf$.
+%
+
+\begin{fullversion}
+
+\mypara{Co-finite Quantification}
+%
+We define our rules using the co-finite quantification technique
+of~\citet{AydemirCPPW08}.
+%
+This technique enforces a small (but critical) restriction
+in the way fresh names are introduced in the antecedents of rules.
+%
+For example, below we present the standard (on the left)
+and our (on the right) rules for type abstraction.
+$$
+\inferrule*[Right=\tAbsEx]
+    {\notmem{\al'}{\tcenv} \;\;
+      \hastype{\bind{\al'}{\skind},\tcenv}{\subst{\sexpr}{\al}{\al'}}{\subst{\stype}{\al}{\al'}} }
+    {\hastype{\tcenv}{\tabs{\al}{\skind}{\sexpr}}{\polytype{\al}{\skind}{\stype}}}
+\qquad\qquad
+\inferrule*[Right=\tTAbs]
+    {\forall\notmem{\al'}{L}. \;\;
+      \hastype{\bind{\al'}{\skind},\tcenv}{\subst{\sexpr}{\al}{\al'}}{\subst{\stype}{\al}{\al'}} }
+    {\hastype{\tcenv}{\tabs{\al}{\skind}{\sexpr}}{\polytype{\al}{\skind}{\stype}}}
+$$
+%
+%\NV{Make the rule consistent with the implementation?}
+The standard rule \tAbsEx requires the \text{existence} of a
+fresh type variable name $\al'$.
+%
+Instead our co-finite quantification rule
+states that the rule holds for any name excluding
+a finite set of names $L$. %(here the ones that already appear in $\tcenv$).
+%
+As observed by~\citet{AydemirCPPW08} this rephrasing
+simplifies the mechanization of metatheory
+by eliminating the need for renaming lemmas.
+
+\end{fullversion}
+
+\subsection{Well-formedness}
+\label{sec:typing:wf}
+
+\mypara{Judgments}
+%
+The judgment $\isWellFormed{\tcenv}{\stype}{\skind}$
+says that the type $\stype$ is well-formed in the environment
+$\tcenv$ and has kind $\skind$.
+%
+The judgment $\isWellFormedE{\tcenv}$ says that the
+environment $\tcenv$ is well formed, meaning
+that it only binds to well-formed
+types.
+%
+Well-formedness is also used in the (unrefined) system $\sysf$, where
+$\isWFFT{\tcenv}{\sftype}{\skind}$
+means that the (unrefined) $\sysf$ type
+$\sftype$ is well-formed in environment
+$\tcenv$ and has kind $\skind$
+and $\isWFFE{\tcenv}$ means
+that the free type variables
+of the
+environment $\tcenv$ are bound earlier in the environment.
+%
+\begin{fullversion}
+Well-formedness is not strictly
+required for \sysf, but it 
+simplifies the mechanization \cite{Remy21}.
+\end{fullversion}
+
+
+\mypara{Rules}
+%
+\Cref{fig:wf} summarizes the rules
+that establish the well-formedness of types
+and environments. 
+%, with the grey highlighting
+%the parts relevant for refinements.
+%
+Rule \wtBase states that the two closed base
+types (\tint and \tbool, 
+refined with \ttrue in \sysrf)
+are well-formed and have base kind.
+%
+Similarly, rule \wtVar says that a %n unrefined or trivially refined
+type variable $\tvar$ is well-formed with kind $\skind$
+so long as $\bind{\tvar}{\skind}$ is bound in the environment.
+%
+The rule \wtRefn stipulates that a refined base type $\breft{\sbase}{x}{\spred}$
+is well-formed with base kind in some environment
+if the unrefined base type $\sbase$
+has base kind in the same environment and if
+the refinement predicate $\spred$ has type $\tbool$
+in the environment augmented by binding a fresh variable to type $\sbase$.
+Note that if $\sbase \equiv \tvar$ then we can only form the antecedent
+$\isWellFormed{\tcenv}{\breft{\tvar}{x}{\ttrue}}{\skbase}$
+when $\bind{\tvar}{\skbase} \in \tcenv$ (rule \wtVar),
+which prevents us from refining star-kinded type variables.
+%\NV{Do you mean that otherwise the rule var will be used?}
+%
+\textit{To break a circularity}\NV{check ref in the link in the overview pic}
+in which well-formedness judgments 
+appear in the antecedents  of
+typing judgments and a typing judgment
+appears in the antecedents
+of \wtRefn, we use the $\sysf$
+judgment to check that $\spred$ has
+type $\tbool$.
+%
+\begin{fullversion}
+  Our rule \wtFunc states that a function
+  type $\functype{x}{t_x}{t}$ is well-formed
+  with star kind in some environment $\tcenv$
+  if both type $t_x$ is well-formed (with any kind)
+  in the same environment and type $t$
+  is well-formed (with any kind) in the
+  environment $\tcenv$ augmented by binding
+  a fresh variable to $t_x$.
+  %
+  Rule \wtExis states that an existential
+  type $\existype{x}{t_x}{t}$ is well-formed
+  with some kind $\skind$ in some environment
+  $\tcenv$ if both type $t_x$ is well-formed
+  (with any kind) in the same environment
+  and type $t$ is well-formed with kind
+  $\skind$ in the environment $\tcenv$
+  augmented by binding a fresh variable
+  to $t_x$.
+  %
+  Rule \wtPoly establishes that a
+  polymorphic type $\polytype{\tvar}{\skind}{\stype}$
+  has star kind in environment $\tcenv$ if the
+  inner type $\stype$ is well-formed (with any kind)
+  in environment $\tcenv$ augmented by binding a fresh
+  type variable $\tvar$ to kind $\skind$.
+\end{fullversion}
+%
+Finally, rule \wtKind simply states that if a type $\stype$
+is well-formed with base kind in some environment, then
+it is also well-formed with star kind. % in that environment.
+This rule is required by our metatheory to convert base to star
+kinds in type variables.
+%Rule \wtKind is needed in our formalism because we chose
+%that a star kinded variable may only be instantiated with
+%a star kinded type in order to simplify other aspects of our
+%metatheory.
+%\NV{Why would we need to convert from base to star kind?}
+%\NV{This rules does the opposite, check again}
+
+\begin{conference}
+As for environments, the empty environment
+is well-formed.
+A well-formed environment remains well-formed 
+after binding a fresh term or type variable to \resp any well-formed type or kind. 
+\end{conference}
+\begin{fullversion}
+As for environments, rule \wfeEmp states that the empty environment
+is well-formed. Rule \wfeBind says that a well-formed environment
+$\tcenv$ remains well-formed after binding a fresh variable $x$ to any
+type $t_x$ that is well-formed in $\tcenv$.
+%
+Finally rule \wfeTBind states that a well-formed environment remains
+well-formed after binding a fresh type variable to any kind.
+\end{fullversion}
+
+
+\begin{figure}%[t!]
+%
+%{\small
+\begin{mathpar}
+\judgementHead{Well-formed Type}{\isWellFormed{\tcenv}{\stype}{\skind}}
+
+%%%%%%%%%%%% WELL-FORMEDNESS %%%%%%%%%%%%%
+%
+\inferrule% *[Right=\wtBase]
+    {\sbase \in \{\tbool, \tint\}}
+    {\isWellFormed{\tcenv}{\sbase\greybox{\!\breft{}{x}{\ttrue}}\!}{\skbase}}
+    {\wtBase}
+\quad
+\inferrule% *[Right=]
+    {\bind{\al}{\skind} \in \tcenv}
+    {\isWellFormed{\tcenv}{\al\greybox{\!\breft{}{x}{\ttrue}}\!}{\skind}}
+    {\wtVar} 
+\quad
+\inferrule% *[Right=]
+    { \isWellFormed{\tcenv}{t}{\skbase} }
+    { \isWellFormed{\tcenv}{t}{\skstar} }
+    {\wtKind} 
+
+%    
+\greybox{\inferrule% *[Right=\;\;\wtRefn]
+    { \isWellFormed{\tcenv}{\breft{b}{x}{\ttrue}}{\skbase} \\\\
+      \forall\notmem{y}{\tcenv}.
+      \hasftype{\bind{y}{b}, \forgetreft{\tcenv}}{\subst{p}{x}{y}}{\tbool}
+    }
+    {\isWellFormed{\tcenv}{\breft{b}{x}{p}}{\skbase}}
+    {\wtRefn} }
+
+\inferrule% *[Right=\wtFunc]
+    { \isWellFormed{\tcenv}{t_x}{\skind_x} \\\\
+      \greybox{\forall\notmem{y}{\tcenv}.} 
+      \isWellFormed{\greybox{\bind{y}{t_x},}\tcenv}{t\greybox{\!\subst{}{x}{y}}}{\skind}
+    }
+    { \isWellFormed{\tcenv}{\greybox{x\!}\!\functype{}{t_x}{t}}{\skstar} }
+    {\wtFunc} 
+
+\greybox{\inferrule% *[Right=\;\;\wtExis]
+    { \isWellFormed{\tcenv}{t_x}{\skind_x} \;\;
+      \forall\notmem{y}{\tcenv}. \;
+      \isWellFormed{\bind{y}{t_x},\tcenv}{\subst{t}{x}{y}}{\skind}
+    }
+    { \isWellFormed{\tcenv}{\existype{x}{t_x}{t}}{\skind} }
+    {\wtExis} }
+
+\inferrule% *[Right=]
+    { \forall\notmem{\al'}{\tcenv}. \;\;
+      \isWellFormed{\bind{\al'}{k}, \tcenv}{\subst{t}{\al}{\al'}}{\skind_t}
+    }
+    { \isWellFormed{\tcenv}{\polytype{\al}{\skind}{t}}{\skstar} }
+    {\wtPoly}
+%
+\end{mathpar}
+%}
+
+
+%{\small
+\begin{mathpar}
+\judgementHead{Well-formed Environment}{\isWellFormedE{\tcenv}}
+
+%
+\inferrule% *[Right=\wfeEmp]
+    { }
+    { \isWellFormedE{\varnothing} }
+    {\wfeEmp}
+%
+\quad
+%
+\inferrule% *[Right=\wfeBind]
+    {\isWellFormed{\tcenv}{\stype_x}{\skind_x} \quad
+     \isWellFormedE{\tcenv} \quad
+     \notmem{x}{\tcenv}
+    }
+    { \isWellFormedE{\bind{x}{\stype_x}, \tcenv} }
+    {\wfeBind}
+%
+\quad
+%
+\inferrule% *[Right=\wfeTBind]
+    {\isWellFormedE{\tcenv} \quad
+     \notmem{\al}{\tcenv}
+    }
+    { \isWellFormedE{\bind{\al}{\skind}, \tcenv} }
+    {\wfeTBind}
+\end{mathpar}
+%}
+\vspace{-0.00cm}
+\caption{Well-formedness of types and environments. The rules for
+  $\sysf$ exclude the grey boxes.}
+\label{fig:wf}
+\label{fig:wfe}
+\vspace{-0.00cm}
+\end{figure}
+
+
+% \NV{Commented out kinded polymorphism as is already explained in the overview}
+\begin{comment}
+\mypara{Kinded (Refinement) Polymorphism}
+%
+\RJ{fix with OVERVIEW}\NV{all this is pushed to overview now}
+%
+Recall that \sysrf features two kinds:
+\emph{base} ($\skbase$) and \emph{star} ($\skstar$).
+%
+Only base types \tbool and \tint (and existential
+quantifications of them) can be refined in our syntax;
+we do not permit refinements for function types
+and polymorphic types.
+%
+This kind system allows us to keep track of types
+eligible for refinement in the presence of type variables.
+%
+A type variable of base kind is eligible for refinements,
+but one with star kind could be instantiated to any type
+and so may not be refined.
+%
+For example, consider the polymorphic function definition in code
+\ha{let max = \x y -> if x > y then x else y}.
+What postconditions can we state about this function?
+If $\vv$ is the return value, then we know that
+$x \leq \vv$ and $y \leq \vv$. The type for the function is then
+$\polytype{\al}{\skbase}{\functype{x}{\al}{\functype{y}{\al}
+  {\breft{\al}{\vv}{x \leq \vv \wedge y \leq \vv}}}}$.
+This type is well-formed due \wtRefn: we can form the judgment
+$\isWellFormed{\bind{y}{\al},\bind{x}{\al}, \bind{\al}{\skbase}}
+  {\breft{\al}{\vv}{x\leq\vv \wedge y\leq\vv}}{\skbase}$
+only because $\bind{\al}{\skbase}$ appears in the environment.
+%
+\wtPoly then requires that we quantify over
+$\bind{\al}{\skbase}$.
+%
+The type system will then reject usage like \ha{max f1 f2}
+on functions because \ha{max} is only polymorphic over base types.
+\end{comment}
+
+% For example, by the typing rule \tVar below
+% we can establish the judgment
+% $\hastype{\bind{x}{(\polytype{\al}{\skstar}{\al})} }
+%          {x}{(\polytype{\al}{\skstar}{\al})}$
+% because by rule \wtPoly we know that
+% $\isWellFormed{\varnothing}{(\polytype{\al}{\skstar}{\al})}{\skstar}$
+% %
+% Then by rule \tTApp below,
+% for \emph{any} well-formed type
+% $\isWellFormed{\bind{x}{(\polytype{\al}{\skstar}{\al})}}{\stype}{\skstar}$
+% we have the judgment
+% $\hastype{\bind{x}{(\polytype{\al}{\skstar}{\al})}}
+%          {\tyapp{x}{\stype}}{\subst{\al}{\al}{\stype}}$.
+%
+% In particular, $\stype$ could a function type or polymorphic type,
+% and so any refinement allowed on $\al$ would have to apply to such
+% a type $\stype$.
+% %
+% Note, however, note that we cannot establish
+% $\isWellFormed{\varnothing}{(\polytype{\al}{\skstar}{\breft{\al}{\vv}{\spred}})}{\skstar}$
+% for any non-trivial $\spred$,
+% and so we cannot establish
+% $\hastype{\bind{x}{(\polytype{\al}{\skstar}{\breft{\al}{\vv}{\spred}})}}
+%          {\tyapp{x}{t}}{\subst{\breft{\al}{\vv}{\spred}}{\al}{\stype}}$
+% for types $\stype$ with arbitrary kind.
+% This is prevented by our keeping track of kinds for type variables
+% in the binding environment.
+% %\RJ{explain how rules establish the above}
+
+\subsection{Typing}
+\label{sec:typing:typ}
+
+The judgment $\hastype{\tcenv}{\sexpr}{\stype}$ states
+that the term $\sexpr$ has type $\stype$ in the context of
+environment $\tcenv$.
+%
+We write $\hasftype{\tcenv}{\sexpr}{\sftype}$
+to indicate that term $\sexpr$ has the (unrefined)
+$\sysf$ type $\sftype$ in the (unrefined) context
+$\tcenv$.
+%
+\Cref{fig:typing} summarizes
+the rules that establish typing for both $\sysf$ and
+$\sysrf$, with grey %boxes
+%indicating extensions needed
+for the $\sysrf$ extensions.
+
+\begin{figure}
+%  {\small
+  \begin{mathpar}             %%%%%%%%%%%%% TYPING %%%%%%%%%%%%%%%%%%
+  \judgementHead{Typing}{\hastype{\tcenv}{\sexpr}{\stype}} \\
+        \inferrule% *[Right=\tPrim]
+        { % \ty{\sconst} = \stype
+        }{\hastype{\tcenv}{\sconst}{\ty{\sconst}}}
+        {\tPrim}
+    \quad
+        \inferrule% *[Right=\tVar]
+        {\bind{x}{\stype} \in \tcenv  \\\\
+         \greybox{\isWellFormed{\tcenv}{\stype}{\skind}}}
+        {\hastype{\tcenv}{x}{\greybox{\self{\whitebox{\stype}}{x}{\skind}}}}
+        {\tVar}
+    \quad
+    \inferrule%*[Right=\tAnn]
+    {\hastype{\tcenv}{\sexpr}{\stype} \\\\
+     \greybox{\isWellFormed{\tcenv}{\stype}{\skind}}}
+    {\hastype{\tcenv}{\tyann{\sexpr}{\stype}}{\stype}}
+    {\tAnn}
+        \quad
+        \greybox{
+          \inferrule% *[Right=\;\;\tSub]
+          {
+            \isWellFormed{\tcenv}{t}{\skind}\\\\
+            \hastype{\tcenv}{\sexpr}{s} \\
+           \isSubType{\tcenv}{s}{t}
+           }
+          {\hastype{\tcenv}{\sexpr}{t}}
+          {\tSub}
+        }
+        \\
+    %
+    \inferrule% *[Right=\tApp]
+    {
+      \hastype{\tcenv}{\sexpr_x}{\stype_x}\\\\
+      \hastype{\tcenv}{\sexpr}{\greybox{x\!}\!\functype{}{\stype_x}{\stype}}
+    }
+    {\hastype{\tcenv}{\app{\sexpr}{\sexpr_x}}{\greybox{\existype{x}{\stype_x}{\whitebox{\stype}}}}}
+    {\tApp} 
+    \quad
+    \inferrule%*[Right=\tAbs]
+        { 
+          \isWellFormed{\tcenv}{\stype_x}{\skind_x}\\\\
+          \forall\notmem{y}{\tcenv}.
+          \hastype{\bind{y}{\stype_x},\tcenv}{\subst{\sexpr}{x}{y}}{\greybox{\subst{\whitebox{\stype}}{x}{y}}} 
+         }
+        {\hastype{\tcenv}{\vabs{x}{\sexpr}}{\greybox{x\!}\!\functype{}{\stype_x}{\stype}}}
+        {\tAbs}
+    %
+    \quad
+    %
+        \inferrule% *[Right=\tTAbs]
+        {\forall\notmem{\al'}{\tcenv}.\\\\
+        \hastype{\bind{\al'}{\skind},\tcenv}{\subst{\sexpr}{\al}{\al'}}{\subst{\stype}{\al}{\al'}}
+        }
+        {\hastype{\tcenv}{\tabs{\al}{\skind}{\sexpr}}{\polytype{\al}{\skind}{\stype}}}
+        {\tTAbs}
+        \and
+    %
+        \inferrule% *[Right=\tTApp]
+        {
+          \isWellFormed{\tcenv}{t}{\skind}\\\\
+          \hastype{\tcenv}{\sexpr}{\polytype{\al}{\skind}{s}}
+        }
+        {\hastype{\tcenv}{\tyapp{\sexpr}{t}}{\subst{s}{\al}{t}}}
+        {\tTApp}
+    \quad    
+    %
+        \inferrule% *[Right=\tLet]
+        {\hastype{\tcenv}{\sexpr_x}{\stype_x} \\
+        \greybox{\isWellFormed{\tcenv}{\stype}{\skind}}\\\\
+        \forall\notmem{y}{\tcenv}.
+        \hastype{\bind{y}{\stype_x},\tcenv}{\subst{\sexpr}{x}{y}}
+             {\stype\greybox{\!\subst{}{x}{y}}}
+         }
+        {\hastype{\tcenv}{\eletin{x}{\sexpr_x}{\sexpr}}{\stype}}
+        {\tLet}
+    \quad    
+    %
+        \inferrule% *[Right=\tIf]
+        {\hastype{\tcenv}{\sexpr}{\greybox{\breft{\whitebox{\tbool}}{x}{p}}} \\
+        \greybox{\isWellFormed{\tcenv}{\stype}{\skind}}\\\\
+        \greybox{\forall\notmem{y}{\tcenv}.}
+        \hastype{\greybox{\bind{y}{\breft{\tbool}{x}{p \wedge x}},}\tcenv}
+             {\sexpr_1}{\stype}\\\\
+        \greybox{\forall\notmem{y}{\tcenv}.}
+        \hastype{\greybox{\bind{y}{\breft{\tbool}{x}{p \wedge \neg x}},}\tcenv}
+             {\sexpr_2}{\stype}
+         }
+        {\hastype{\tcenv}{\eif{\sexpr}{\sexpr_1}{\sexpr_2}}{\stype}}
+        {\tIf}        
+    \end{mathpar}
+%  }
+\vspace{-0.00cm}
+\caption{Typing rules.
+The judgment $\hasftype{\tcenv}{\sexpr}{\sftype}$ is defined by excluding the grey boxes.}\label{fig:t}\label{fig:typing}
+\vspace{-0.00cm}
+\end{figure}
+
+
+\mypara{Typing Primitives}
+%
+The type of a built-in primitive $\sconst$ is given by
+the function $\ty{\sconst}$, which is defined for every
+constant of our system. Below we present essential
+examples of the $\ty{\sconst}$ definition.
+%
+{\small
+$$\begin{array}{rclrcl}
+\ty{\ttrue} & \defeq & \breft{\tbool}{x}{x = \ttrue} &
+%&  \ty{\tfalse} & \defeq& \breft{\tbool}{x}{x = \tfalse} \\
+%\ty{3} & \defeq& \breft{\tint}{x}{x = 3} \\
+%&  \ty{n} & \defeq& \breft{\tint}{x}{x = n} \\
+ \ty{\wedge} & \defeq & \functype{x}{\tbool}{\functype{y}{\tbool}{\breft{\tbool}{v}{v = x \wedge y}}} \\
+%  \ty{\neg} & \defeq & \functype{x}{\tbool}{\breft{\tbool}{y}{y = \neg x}} \\
+\ty{3} & \defeq& \breft{\tint}{x}{x = 3} &
+\ty{\leq} & \defeq & \polytype{\al}{\skbase}{\functype{x}{\al}{\functype{y}{\al}{\breft{\tbool}{v}{v = (x \leq y)}}}} \\
+\ty{m\!\!\leq} & \defeq & \functype{y}{\tint}{\breft{\tbool}{v}{v = (m \leq y)}} & 
+% \ty{m\!\!\leq} \defeq&\; \functype{n}{\tint}{\breft{\tbool}{v}{v = (m \leq n)}} \\
+\ty{=} & \defeq & \polytype{\tvar}{\skbase}{\functype{x}{\al}{\functype{y}{\al}{\breft{\tbool}{v}{v = (x = y)}}}}
+\end{array}$$
+}
+We note that the $=$ used in the refinements is the polymorphic
+equals with type applications elided.
+%
+Further, we use $m\!\!\leq$ to represent
+an arbitrary member of the infinite family
+of primitives $0\!\!\leq,\, 1\!\!\leq,\, 2\!\!\leq,\ldots$.
+%
+For \sysf we erase the refinements
+using $\forgetreft{\ty{\sconst}}$.
+%
+The rest of the definition is similar.
+
+Our choice to make the typing and reduction
+of constants external to our language,
+\ie given by the functions
+$\ty{\sconst}$ and $\tc{\sconst}$,
+makes our system easily extensible with further constants, 
+including a terminating \texttt{fix} constant to encode induction.
+%
+The requirement, for soundness, is that
+these two functions % on constants
+together satisfy the following four conditions.
+%
+\begin{requirement}(Primitives) \label{lem:prim-typing}
+For every primitive $c$,
+\begin{enumerate}
+\item If $\ty{\sconst} = \breft{\sbase}{x}{\spred}$, then
+  $\isWellFormed{\varnothing}{\ty{\sconst}}{\skbase}$ and
+  $\imply{\varnothing}{\ttrue}{\subst{\spred}{x}{\sconst}}$.
+\item If $\ty{\sconst} = \functype{x}{\stype_x}{\stype}$ or
+         $\ty{\sconst} = \polytype{\al}{\skind}{\stype}$, then
+         $\isWellFormed{\varnothing}{\ty{\sconst}}{\skstar}$.
+\item If ${\ty{\sconst}} = \functype{x}{\stype_x}{\stype}$,
+      then for all $v_x$ such that
+     $\hastype{\varnothing}{v_x}{\stype_x}$,
+     % $\delta(\sconst,v)$ is defined and
+    $\hastype{\varnothing}{\delta(\sconst,v_x)}{\subst{\stype}{x}{v_x}}$.
+\item If ${\ty{\sconst}} = \polytype{\al}{\skind}{\stype}$,
+      then for all $\stype_\al$ such that
+     $\isWellFormed{\varnothing}{\stype_\al}{\skind}$,
+     % $\delta_T(\sconst,\stype)$ is defined and we have
+    $\hastype{\varnothing}{\delta_T(\sconst,\stype_\al)}{\subst{\stype}{\al}{\stype_\al}}$.
+\end{enumerate}
+\end{requirement}
+
+Theorem 3 of~\cite{Vazou14} proves that 
+a terminating \texttt{fix} constant satisfies
+requirement~\ref{lem:prim-typing}. 
+
+To type constants, rule \tPrim gives the type
+$ty(\sconst)$ to any built-in
+primitive $\sconst$, in any context.
+%
+\begin{fullversion}
+The typing rules for boolean and integer
+constants are included in \tPrim.
+\end{fullversion}
+
+\mypara{Typing Variables with Selfification}
+%
+Rule \tVar establishes that any variable $x$ that
+appears as $\bind{x}{\stype}$ in environment $\tcenv$
+can be given the \emph{selfified} type \cite{Ou2004}
+$\self{\stype}{x}{\skind}$ provided that
+$\isWellFormed{\tcenv}{\stype}{\skind}$.
+%
+This rule is crucial in practice,
+to enable path-sensitive ``occurrence'' typing \cite{Tob08},
+where the types of variables are refined by control-flow guards.
+%
+\NV{Can we use an example from the overview?}
+\NV{go prime require self for if condition}
+For example, suppose we want to establish
+$\hastype{\bind{\al}{\skbase}}{(\vabs{x}{x})}{\functype{x}{\al}{\breft{\al}{y}{x=y}}}$,
+and not just $\hastype{\bind{\al}{\skbase}}{(\vabs{x}{x})}{\funcftype{\al}{\al}}$.
+%
+The latter would result
+if \tVar merely stated that
+$\hastype{\tcenv}{x}{\stype}$
+whenever $\bind{x}{\stype} \in \tcenv$.
+%
+Instead, we strengthen the \tVar rule to
+be \emph{selfified}.
+%:
+%
+Informally, to get information about $x$
+into the refinement level, we need to say
+that $x$ is constrained to elements of
+type $\al$ that are equal to $x$ itself.
+%
+In order to express the exact type of
+variables, below we define the ``selfification''
+function that strengthens a refinement
+with the condition that a value is equal
+to itself.
+%
+Since abstractions do not admit equality,
+we only selfify the base types and the existential
+quantifications of them.
+%
+$$\begin{array}{r@{\hskip 0.03in}c@{\hskip 0.03in}l@{\hskip 0.2in}r@{\hskip 0.03in}c@{\hskip 0.03in}l}
+  \self{\existype{z}{t_z}{t}}{x}{\skind} & \defeq & \existype{z}{t_z}{\self{t}{x}{\skind}} & 
+  \self{\breft{\sbase}{z}{p}}{x}{\skbase} & \defeq & \breft{\sbase}{z}{p \wedge z = x} \\
+  \self{\functype{x}{t_x}{t}}{\_}{\_} & \defeq & \functype{x}{t_x}{t} &
+  \self{\breft{\sbase}{z}{p}}{x}{\skstar} & \defeq & \breft{\sbase}{z}{p} \\ 
+  \self{\polytype{\al}{k}{t}}{\_}{\_} & \defeq & \polytype{\al}{k}{t}
+% \self{\stype}{x}{\skstar}               & \defeq & \stype &
+%  & &
+\end{array}$$
+
+\mypara{Typing Applications with Existentials}
+%
+Our rule \tApp states the conditions for typing
+a term application $\app{\sexpr}{\sexpr_x}$.
+%
+Under the same environment,
+we must be able to type $\sexpr$ at
+some function type $\functype{x}{\stype_x}{\stype}$ and
+$\sexpr_x$ at $\stype_x$. Then we can give $\app{\sexpr}{\sexpr_x}$
+the existential type $\existype{x}{\stype_x}{\stype}$.
+%
+The use of existential types in rule \tApp
+is one of the distinctive features of our language
+and was introduced by~\citet{Knowles09}.
+%
+As overviewed in \S~\ref{overview:exists},
+we chose this form of \tApp over the conventional
+form of $\hastype{\tcenv}{\app{\sexpr}{\sexpr_x}}{\subst{\stype}{x}{\sexpr_x}}$
+because our version prevents
+the substitution of arbitrary expressions (\eg functions and type abstractions)
+into refinements.
+%
+As an alternative, we could have used ANF (A-Normal Form~\cite{Flanagan93}),
+but our metatheory would be more complex
+since ANF is not preserved under the small step operational semantics.
+
+\mypara{Other Typing Rules}
+%
+\begin{fullversion}
+    Rule \tAbs says that we can type a lambda abstraction
+    $\vabs{x}{\sexpr}$ at a function type $\functype{x}{\stype_x}{\stype}$
+    whenever $\stype_x$ is well-formed and the body $\sexpr$
+    can be typed at $\stype$ in the environment augmented by binding
+    a fresh variable to $\stype_x$.  
+\end{fullversion}
+%
+Our rule \tTApp states that whenever a term $\sexpr$ has polymorphic
+type $\polytype{\al}{\skind}{s}$, then for any well-formed type $\stype$
+with kind $\skind$, %in the same environment, 
+we can give the type
+$\subst{s}{\al}{\stype}$ to the type application $\tyapp{\sexpr}{\stype}$.
+%
+For the \sysf variant of \tTApp, we erase the refinements (via $\forgetreft{\stype}$)
+before checking well-formedness and performing the substitution.
+%
+\begin{fullversion}
+    The rule \tTAbs establishes that a type-abstraction $\tabs{\al}{\skind}{\sexpr}$
+    can be given a polymorphic type $\polytype{\al}{\skind}{\stype}$ in some % environment
+    $\tcenv$ whenever $\sexpr$ can be given the well-formed type $\stype$
+    in %the environment 
+    $\tcenv$ augmented by binding a fresh type variable
+    to kind $\skind$.
+    %
+    Next, rule $\tLet$ states that an expression $\eletin{x}{\sexpr_x}{e}$ has type
+    $\stype$ in some environment whenever $\stype$ is well-formed, $\sexpr_x$ can
+    be given some type $\stype_x$, and the body $\sexpr$ can be given type $\stype$
+    in the environment augmented by binding a fresh variable to $\stype_x$.
+\end{fullversion}
+%
+Rule $\tAnn$ establishes that an explicit annotation $\tyann{\sexpr}{\stype}$
+indeed has type $\stype$ when the underlying %expression 
+$\sexpr$ has type $\stype$ and $\stype$ is well-formed.
+The \sysf version of the rule erases the refinements and uses
+$\forgetreft{\stype}$.
+%
+Rule $\tIf$ states that a conditional expression $\eif{\sexpr}{\sexpr_1}{\sexpr_2}$
+has the type $\stype$ when the guard $\sexpr$ can be 
+given type $\tbool$ refined by $p$ and $\sexpr_1$ (\resp $\sexpr_2$)
+can be given type $\stype$ in the environment $\tcenv$ 
+augmented by the knowledge we have about the type 
+and semantics of the guard $\sexpr$.
+The extension of the environment $\tcenv$
+with a fresh variable that captures the semantics of the guard
+when checking the two paths is critical to 
+permit path-sensitive reasoning.
+%
+Finally, rule \tSub tells us that we can exchange a subtype $s$
+for a supertype $t$ in a judgment $\hastype{\tcenv}{\sexpr}{t}$
+provided 
+$t$ is well-formed and
+$\isSubType{\tcenv}{s}{t}$, which we present next.
+%
+\subsection{Subtyping}
+\label{sec:typing:sub}
+
+The \emph{subtyping} judgment ${\isSubType{\tcenv}{s}{t}}$, 
+defined in \Cref{fig:s}, 
+stipulates that the type $s$ is a subtype of
+the type $t$ in the environment $\tcenv$
+and is used in the subsumption typing rule \tSub (of~\Cref{fig:typing}).
+
+\begin{figure}
+\judgementHead{Subtyping}{\isSubType{\tcenv}{s}{t}}
+
+\begin{mathpar}   %%%%%%%%%%%%%%%%%% SUBTYPING %%%%%%%%%%%%%%%%%%
+  \inferrule*[Right=\sFunc]
+  { \isSubType{\tcenv}{t_{x2}}{t_{x1}} \quad
+    \forall\notmem{y}{\tcenv}. \quad
+    \isSubType{\bind{y}{t_{x2}},\tcenv}{\subst{t_1}{x}{y}}{\subst{t_2}{x}{y}} }
+  {\isSubType{\tcenv}{\functype{x}{t_{x1}}{t_1}}{\functype{x}{t_{x2}}{t_2}}} \\
+%
+\and
+%
+  \inferrule*[Right=\sWitn]
+  { \hastype{\tcenv}{\sval_x}{\stype_x} \quad
+    \isSubType{\tcenv}{\stype}{\subst{\stype'}{x}{\sval_x}}}
+  {\isSubType{\tcenv}{\stype}{\existype{x}{\stype_x}{\stype'}}}
+%
+\and
+%
+  \inferrule*[Right=\sBind]
+  { \forall\notmem{y}{\free{\stype}\cup \tcenv}. \quad
+    \isSubType{\bind{y}{\stype_x},\tcenv}{\subst{\stype}{x}{y}}{\stype'}
+%    \quad
+%    \lc{\stype'}
+  }
+  {\isSubType{\tcenv}{\existype{x}{\stype_x}{\stype}}{\stype'}} \\
+%
+\and
+%
+  \inferrule*[Right=\sPoly]
+  { \forall\notmem{\al'}{\tcenv}. \quad
+    \isSubType{\bind{\al'}{\skind},\tcenv}{\subst{\stype_1}{\al}{\al'}}{\subst{\stype_2}{\al}{\al'}} }
+  {\isSubType{\tcenv}{\polytype{\al}{\skind}{\stype_1}}{\polytype{\al}{\skind}{\stype_2}}}
+%
+\and
+%
+  \inferrule*[Right=\sBase]
+  {\forall\notmem{y}{\tcenv}. \quad
+    \imply{\bind{y}{{\sbase}},\tcenv}{\subst{p_1}{x}{y}}{\subst{p_2}{x}{y}} }
+  {\isSubType{\tcenv}{\breft{\sbase}{x}{\spred_1}}{\breft{\sbase}{x}{\spred_2}}}
+\end{mathpar}
+\vspace{-0.00cm}
+\caption{Subtyping Rules.}
+\label{fig:s}
+\label{fig:subtyping}
+\label{fig:ent}
+\vspace{-0.00cm}
+\end{figure}
+\mypara{Subtyping Rules}
+\begin{fullversion}  
+    The rule \sFunc states that one function type $\functype{x_1}{t_{x1}}{t_1}$
+    is a subtype of another function type $\functype{x_2}{t_{x2}}{t_2}$ in a
+    given environment $\tcenv$ when both $t_{x2}$ is a subtype of $t_{x1}$
+    and $t_1$ is a subtype of $t_2$ when we augment $\tcenv$ by
+    binding a fresh variable to type $t_{x2}$.
+    As usual, function subtyping is contravariant
+    in the input type and covariant in the outputs.
+\end{fullversion}
+%
+Rules \sBind and \sWitn establish subtyping for existential
+types \cite{Knowles09}, \resp when the existential
+appears on the left or right.
+%
+Rule \sBind allows us to exchange a universal quantifier
+(a variable bound to some type $\stype_x$ in the environment)
+for an existential quantifier.
+%
+If we have a judgment of the form
+$\isSubType{\bind{y}{\stype_x},\tcenv}{\subst{\stype}{x}{y}}{\stype'}$
+where $y$ does \emph{not} appear free in either $\stype'$ or in the context $\tcenv$,
+%$\stype'$ is locally closed, which means that all its deBruijn
+%indices point to binders within $\stype'$ (denoted $\lc{t'}$),
+% \NV{We should not talk about locally closed since we do not model deBruin.
+%     We could instead add a well formedness requirement, but I assume you have a proof
+%     that everything in the right hand side of a subtyping is well formed?}
+then we can conclude that $\existype{x}{\stype_x}{\stype}$
+is a subtype of $\stype'$.
+%
+Rule \sWitn states that if type $\stype$ is a subtype of
+$\subst{\stype'}{x}{\sval_x}$ for some value $\sval_x$
+of type $\stype_x$, then we can discard the specific
+\emph{witness} for $x$ and quantify existentially to
+obtain that $\stype$ is a subtype of $\existype{x}{\stype_x}{\stype'}$.
+%
+\begin{fullversion} 
+    Rule \sPoly states that one polymorphic type
+    $\polytype{\al}{\skind}{\stype_1}$
+    is a subtype of another polymorphic type
+    $\polytype{\al}{\skind}{\stype_2}$
+    in some environment $\tcenv$, when
+    $\stype_1$ is a subtype of $\stype_2$ in the
+    environment $\tcenv$ augmented  by binding
+    a fresh type variable to kind $\skind$.
+\end{fullversion}
+
+Refinements enter the scene in the rule \sBase which
+specifies
+%uses implication to specify
+that a refined base type $\breft{\sbase}{x}{p_1}$
+is a subtype of another $\breft{\sbase}{x}{p_2}$
+in context $\tcenv$ when $p_1$ \emph{implies} $\spred_2$
+in the environment $\tcenv$ augmented by binding
+a fresh variable to the unrefined type $\sbase$.
+%
+%Next, we describe how we formalized implication.
+
+\subsection{Implication}
+\label{sec:typing:implication}
+
+The \emph{implication} judgment $\imply{\tcenv}{\spred_1}{\spred_2}$
+states that the implication $\spred_1 \Rightarrow \spred_2$
+holds under the assumptions captured by the context $\tcenv$.
+%
+In refinement type implementations~\cite{newfstar,Seidel14}, this relation
+is implemented as an external automated (usually SMT) solver.
+%
+Since external solvers are not easy to encode in mechanized proofs,
+we follow an approach that decouples the mechanization from the implementation. 
+Concretely, 
+first we define the interface of the implication (\S~\ref{sec:typing:implication:interface})
+that precisely captures all the requirements that the implication 
+judgement should satisfy to establish the soundness of $\sysrf$. 
+Then, we define two alternative implementations of the interface: 
+a logical implementation (\S~\ref{sec:typing:implication:logical})
+that is used in refinement type implementations 
+and a denotational implementation (\S~\ref{sec:typing:implication:denotational})
+that we used to complete our mechanized proof. 
+
+
+\subsubsection{Implication's Interface}
+\label{sec:typing:implication:interface}
+In our mechanization, 
+following~\citet{LehmannTanter}, 
+we encode implication
+as an axiomatized judgment that satisfies the
+requirements below.
+
+
+\begin{requirement}[Implication Interface]\label{lem:implication}
+  The implication relation satisfies the below statements:
+  \begin{enumerate}
+      \item (Reflexivity) $\imply{\tcenv}{\spred}{\spred}$.
+      \item (Transitivity) If $\imply{\tcenv}{\spred_1}{\spred_2}$
+        and $\imply{\tcenv}{\spred_2}{\spred_3}$, then
+        $\imply{\tcenv}{\spred_1}{\spred_3}$.
+      \item (Faithfulness) $\imply{\tcenv}{\spred}{\ttrue}$.
+      \item (Introduction) If $\imply{\tcenv}{\spred_1}{\spred_2}$
+        and $\imply{\tcenv}{\spred_1}{\spred_3}$, then
+        $\imply{\tcenv}{\spred_1}{\csand{\spred_2}{\spred_3}}$.
+      \item (Conjunction)
+      $\imply{\tcenv}{\csand{\spred_1}{\spred_2}}{\spred_1}$ and
+      $\imply{\tcenv}{\csand{\spred_1}{\spred_2}}{\spred_2}$.
+      \item (Repetition)
+      $\imply{\tcenv}{\csand{\spred_1}{\spred_2}}
+                     {\csand{\spred_1}{\csand{\spred_1}{\spred_2}}}$.
+      \item (Evaluation) If $\evalsTo{\spred_1}{\spred_2}$, 
+        then $\imply{\tcenv}{\spred_1}{\spred_2}$
+        and  $\imply{\tcenv}{\spred_2}{\spred_1}$.
+      \item (Narrowing) If
+      $\imply{\tcenv_1,\bind{x}{t_x},\tcenv_2}{\spred_1}{\spred_2}$
+      and $\isSubType{\tcenv_2}{s_x}{t_x}$, then
+      $\imply{\tcenv_1,\bind{x}{s_x},\tcenv_2}{\spred_1}{\spred_2}$.
+      \item (Weaken) If
+      $\imply{\tcenv_1,\tcenv_2}{\spred_1}{\spred_2}$,
+       $a,x\not\in\tcenv$, then
+      $\imply{\tcenv_1,\bind{x}{t_x},\tcenv_2}{\spred_1}{\spred_2}$ and
+      $\imply{\tcenv_1,\bind{a}{k},\tcenv_2}{\spred_1}{\spred_2}$.
+      \item (Subst I) If
+      $\imply{\tcenv_1,\bind{x}{t_x},\tcenv_2}{\spred_1}{\spred_2}$
+      and $\hastype{\tcenv_2}{v_x}{t_x}$, then
+      $\imply{\subst{\tcenv_1}{x}{v_x},\tcenv_2}{\subst{\spred_1}{x}{v_x}}
+                                             {\subst{\spred_2}{x}{v_x}}$.
+      \item (Subst II) If $\imply{\tcenv_1,\bind{a}{k},\tcenv_2}{\spred_1}{\spred_2}$
+      and $\isWellFormed{\tcenv_2}{t}{k}$, then
+      $\imply{\subst{\tcenv_1}{a}{t},\tcenv_2}{\subst{\spred_1}{a}{t}}
+      {\subst{\spred_2}{a}{t}}$.
+      \item (Strengthening) If
+      $\imply{\bind{y}{\breft{\sbase}{x}{q},\tcenv}}{\spred_1}{\spred_2}$,
+      then $\imply{\bind{y}{\sbase},\tcenv}{\csand{\subst{q}{x}{y}}{\spred_1}}
+                  {\csand{\subst{q}{x}{y}}{\spred_2}}$.
+  \end{enumerate}
+\end{requirement}
+
+\noindent
+This interface  precisely explicates
+the requirements of
+the implication checker 
+to establish the soundness of the
+entire refinement type system.
+%
+The first six statements are standard properties of implication. 
+Evaluation is used to prove that built-in constants satisfy the~\Cref{lem:prim-typing} 
+and the rest, as captured by their name, are required to prove  
+the narrowing (\ref{lem:narrowing}), weakening (\ref{lem:weakening}), 
+substitution (\ref{lem:subst}) lemmas hold in \sysrf. 
+
+Our requirements are very similar to Assumption 1 of~\cite{Knowles09}. 
+Our Strengthening and Subst II cases are required for polymorphism, thus 
+they do not appear in~\citet{Knowles09}'s assumption.  
+Instead they require Consistency and Exact Quantification. 
+We do not require Exact Quantification since our relation captures 
+the minimum requirements to prove soundness. 
+Instead of explicitly requiring Consistency, 
+in \S~\ref{sec:typing:implication:denotational} we define (and mechanize) an implementation, \ie inhabitant, 
+of the interface thus show our assumptions are consistent. 
+
+
+\subsubsection{Logical Implementation (non mechanized)}
+\label{sec:typing:implication:logical}
+The logical implementation of \imply{\tcenv}{\spred_1}{\spred_2}
+checks that the logical implication $\spred_1 \Rightarrow \spred_2$
+is valid assuming the refinements of the base types in $\tcenv$:
+%
+$$
+  \inferrule
+  {\models_{\texttt{LOGIC}} \wedge\{ \subst{\spred}{\vv}{x} \mid \bind{x}{\breft{\sbase}{\vv}{\spred}} \in \tcenv \} \Rightarrow \spred_1 \Rightarrow \spred_2 }
+  {\imply{\tcenv}{\spred_1}{\spred_2}}
+  {\iLog}
+$$
+This encoding is imprecise, since some information is ignored from the environment $\tcenv$, 
+but when the language of refinements is decidable, implication checking 
+is also decidable and can be efficiently checked by an SMT solver.
+\lh, for example, uses this encoding to reduce type checking to decidable 
+implications checked by Z3~\cite{z3}, while the soundness 
+of this implementation (concretely statement 7 of~\Cref{lem:implication}) 
+is hinted by Theorem 2 of~\cite{Vazou14}.
+\citet{10.1145/3546196.3550162} defines a mechanization of a 
+refinement type system in Agda that uses a similar encoding of implication
+where logical implications are checked using Agda's logic. 
+
+
+\subsubsection{Denotational Implementation (mechanized)}
+\label{sec:typing:implication:denotational}
+The denotational implementation of \imply{\tcenv}{\spred_1}{\spred_2}
+checks that if $\spred_1$ evaluates to \ttrue, so does $\spred_2$. 
+%
+$$
+  \inferrule
+  { \forall \clsub\!\in\!\denote{\tcenv}. \
+      \evalsTo{\applysubst{\clsub}{\spred_1}}{\ttrue}
+      \Rightarrow 
+      \evalsTo{\applysubst{\clsub}{\spred_2}}{\ttrue}
+  }
+  {\imply{\tcenv}{\spred_1}{\spred_2}}
+  {\iDen}
+$$
+The refinements $\spred_1$ and $\spred_2$ are boolean expressions, 
+so evaluation uses the operational semantics of~\Cref{fig:opsem}. 
+But, they are open expressions with variables bound in $\tcenv$,
+so before evaluation we apply the closing substitution $\clsub$
+that belongs to the denotation of $\tcenv$, as defined next. 
+
+\begin{figure}
+$$\begin{array}{r@{\hskip 0.03in}c@{\hskip 0.03in}l}
+\denote{\breft{\sbase}{x}{p}} & \defeq &
+  \setcomp{\sval}{\hasftype{\varnothing}{\sval}{\sbase} \,\wedge\, \evalsTo{\subst{p}{x}{\sval}}{\ttrue}} \\
+\denote{\functype{x}{\stype_x}{\stype}} & \defeq &
+  \setcomp{\sval}{\hasftype{\varnothing}{\sval}{\funcftype{\forgetreft{\stype_x}}{\forgetreft{\stype}}} \,\wedge\, (\forall\, \sval_x \in \denote{\stype_x}.\, \evalsTo{\app{\sval}{\sval_x}}{\sval'} \,{\rm s.t.}\, \sval' \in \denote{\subst{\stype}{x}{\sval_x}} }  \\
+\denote{\existype{x}{\stype_x}{\stype}} & \defeq &
+  \setcomp{\sval}{(\hasftype{\varnothing}{\sval}{\forgetreft{\stype}}) \,\wedge\,
+    ( \exists\, \sval_x \in \denote{\stype_x}.\, \sval\in \denote{\subst{\stype}{x}{\sval_x}} }   \\
+\denote{\polytype{\al}{\skind}{\stype}} & \defeq &
+  \setcomp{\sval}{(\hasftype{\varnothing}{\sval}{\polytype{\al}{\skind}{\forgetreft{\stype}}}) \,\wedge\,
+    (\forall\, \stype_\al.\, (\isWellFormed{\varnothing}{\stype_\al}{\skind}) \Rightarrow
+    \evalsTo{\tyapp{\sval}{\stype_\al}}{\sval'}
+    \,{\rm s.t.}\, \sval' \in \denote{\subst{\stype}{\al}{\stype_\al}}} \\ \\ 
+\denote{\tcenv} & \defeq &
+\setcomp{\clsub} %= (x_1 \mapsto v_1,\ldots, x_n \mapsto v_n,  \al_1 \mapsto t_1, \,\ldots,\, \al_m\mapsto t_m)}{
+{\forall\, (x:t) \in \tcenv.\, \clsub(x) \in \denote{\applysubst{\clsub}{t}} \;\wedge\;
+\forall\, (\al:k) \in \tcenv.\, \isWellFormed{\varnothing}{\clsub(\al)}{k}}.
+\end{array}$$
+\vspace{-0.2cm}
+\caption{Denotations of Types and Environments.}
+\label{fig:den}
+\vspace{-0.4cm}
+\end{figure}
+
+\paragraph{Closing Substitutions}
+A \emph{closing substitution} is a sequence
+of value bindings to variables:
+$
+    \clsub = (x_1\mapsto v_1,\,\ldots,\, x_n\mapsto v_n, \al_1 \mapsto t_1, \,\ldots,\, \al_m\mapsto t_m)
+    \;\; {\rm with\;\; all}\; x_i,\; \al_j\; {\rm distinct.}
+$
+%
+We write $\clsub(x)$ to refer to $v_i$ if $x = x_i$
+and we use $\clsub(\al)$ to refer to $t_j$ if $\al = \al_j$.
+%
+We define $\applysubst{\clsub}{t}$ to be the type derived from $t$
+by substituting for all variables in $\clsub$:
+%
+$
+  \applysubst{\clsub}{t} \defeq \subst{t}{x_1}{v_1}\cdots\subst{}{x_n}{v_n}\subst{}{\al_1}{t_1}\cdots\subst{}{\al_m}{t_m}.
+$
+%
+
+
+\paragraph{Denotational Semantics}
+\Cref{fig:den} defines the denotations of types and environments.
+Following~\citet{flanagan06}, 
+each closed type has a denotation $\denote{\stype}$
+containing the set of closed values
+of the appropriate base type
+which satisfy the type's refinement
+predicate.
+(The denotation of a type variable $\al$
+is not defined as we only require
+denotations for closed types.)
+%
+We lift the notion of denotations to environments $\denote{\tcenv}$
+as the set of closing substitutions, \ie value
+and type bindings for the variables in $\tcenv$, such that the
+values respect the denotations of the respective $\tcenv$-bound
+types and the types are well formed with respect
+to the corresponding kinds.
+
+
+\paragraph{Revisiting rule~\iDen}
+The premise of the rule~\iDen quantifies 
+over all closing substitutions in the denotations of the 
+typing environment 
+(\ie $\forall \clsub\!\in\!\denote{\tcenv}$). 
+This quantification has two consequences. 
+
+First, the environment denotation appears in a negative position 
+on the premise of the rule. Inspecting~\Cref{fig:den}, 
+the environment denotation uses the type denotation, which in turn uses 
+type checking, thus rendering a \textit{potential circularity
+between type and implication checking} (arrow 6 of~\Cref{fig:dependencies}). 
+Because of the negative occurrence, this mutual dependency 
+would lead to a non-monotonic and thus non-well defined system. 
+To break this circularity, we use $\sysf$'s type checking in the definition 
+of type denotations. 
+
+Second, the quantification is over all closing substitutions
+which are infinite. For example, 
+a typing environment that binds $x$ to an integer 
+(\ie $\bind{x}{\tint}\in \tcenv$) 
+has infinitely many closing substitutions mapping $x$ to a different 
+integer. Thus, the denotational implementation 
+cannot be used to implement a decidable type checker. 
+%
+On the positive side, the denotational implementation
+connects implication checking to the operational semantics
+thus it is amicable to mechanization.
+Concretely, we proved (\S~\ref{sec:coq})
+that the denotational implementations satisfies 
+the statements of~\Cref{lem:implication}. 

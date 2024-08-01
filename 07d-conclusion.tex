@@ -1,0 +1,94 @@
+\section{Conclusions \& Future Work}
+  
+We presented and formalized, for the first time, the soundness of
+\sysrf, a refinement calculus with semantic subtyping, existential 
+types, and parametric polymorphism, which are critical for practical 
+refinement typing. 
+%
+Our metatheory is mechanized in both \coq and \lh, the latter
+using the novel feature of refined data propositions to reify 
+derivations as (refined) Haskell datatypes, using SMT
+to automate invariants about variables.
+
+While our proof can be mechanized in other proof assistants like
+\agda~\cite{agda},
+\isabelle~\cite{NPW2002},
+\beluga~\cite{beluga},
+\dafny~\cite{Dafny}, or
+\fstar~\cite{metafstar},
+% or those equipped with SMT-based
+% automation like \dafny \cite{Dafny}
+% or \fstar \cite{metafstar},
+our goal here is not to compare \lh against every system.
+%
+Instead, our primary contribution is to,
+for the first time, \emph{establish the soundness}
+of the combination of features critical for practical
+refinement typing and show that such a proof can be 
+\emph{mechanized as a plain program} with refinement types.
+%
+% To achieve this mechanization we had to develop data propositions 
+% that allow constructive verification in \lh, which naturally led to a 
+% comparison with a \coq mechanization.
+%
+% \newtext{
+Looking ahead, 
+we envision two lines
+of work on mechanizing metatheory \emph{of}
+and \emph{with} refinement types.
+% }
+
+% \newtext{
+\mypara{1. Mechanization of Refinements}
+%
+\sysrf covers a crucial but small
+fragment of the features of modern refinement
+type checkers. 
+The immediate next step is to extend the language 
+to include literals, casts, and data types, 
+thus covering \textit{all} GHC's core calculus. 
+Next, \sysrf can be extended to more sophisticated 
+features of refinement types, such as 
+abstract and bounded refinements and refinement reflection. 
+%
+Similarly, our current work axiomatizes the
+requirements of the semantic implication
+checker (\ie SMT solver).
+It would be interesting to implement a solver
+and verify that it satisfies that contract, or
+alternatively, show how proof certificates \cite{pcc}
+could be used in place of such axioms.
+% }
+
+% \newtext{
+\mypara{2. Mechanization with Refinements}
+%
+While this work shows that non-trivial
+meta-theoretic proofs are \emph{possible}
+with SMT-based refinement types, our experience
+is that much remains to make such developments
+\emph{pleasant}.
+%
+For example, programming would be far more convenient
+with support for automatically \emph{splitting cases}
+or filling in \emph{holes} as done in Agda \cite{agda}
+and envisioned by \citet{hole_driven_liquid}.
+%
+Similarly, when a proof fails, the user has little
+choice but to think really hard about the internal
+proof state and what extra lemmas are needed to prove
+their goal.
+%
+Finally, the stately pace of verification --- 9400 lines
+across 35 files take about 30 minutes --- hinders
+interactive development.
+%
+Thus, rapid incremental checking, lightweight synthesis,
+and actionable error messages would go a long way towards
+improving the ergonomics of verification, and hence remain
+important directions for future work.
+% }
+%% Verified SMT Axioms or Certificates
+%% Denotations ~ Implication via negative types
+%% Datatypes + Polymorphism
+%% Ergonomics

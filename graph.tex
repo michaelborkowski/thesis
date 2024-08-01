@@ -1,0 +1,291 @@
+% Node fill colors
+\definecolor{palegrey}{rgb}{0.72, 0.72, 0.72}%{0.90, 0.90, 0.90}
+\definecolor{lightgreen}{rgb}{0.92, 0.92, 0.92}%{0.56, 0.93, 0.56}
+% Arrow colors
+\definecolor{medgreen}{rgb}{0.02, 0.02, 0.02}%{0.24, 0.39, 0.24}
+\definecolor{darkgreen}{rgb}{0.02, 0.02, 0.02}%{0.19, 0.31, 0.19}
+\definecolor{sysfcolor}{rgb}{0.02, 0.02, 0.02}%{0.52, 0.52, 0.52}
+\begin{figure}[t]
+\begin{center}
+\scalebox{0.77}{
+    \begin{tikzpicture}[
+        > = stealth, %arrowhead=1.25cm,  % arrow head style
+        %shorten > = 1pt,               % don't touch arrow head to node
+        auto,
+        node distance = 1.0cm,         % distance between nodes
+        semithick                      % line style
+    ]
+
+    \tikzstyle{every state}=[
+        rectangle,
+        minimum width=3.70cm,          % make most nodes the same size
+        draw=black, rounded corners
+    ]
+    %\tikzstyle{every box}=[
+    %    rectangle,
+    %    opacity=0.00
+    %    minimum width=3.85cm,         % make most nodes the same size
+    %    draw=thin grey, rounded corners
+    %]
+
+    %% ORANGE REGION: Substitution Lemmas and friends
+    \node[state, fill=palegrey]   (we1)                    {Weaken: tv in sub};
+    \node[state, fill=lightgreen] (we2) [above of=we1]     {Weaken: tv in typ};
+    \node[state, fill=palegrey]   (we3) [above of=we2]     {Weaken: var in sub};
+    \node[state, fill=lightgreen] (we4) [above of=we3]     {Weaken: var in typ};
+
+    \node[state, fill=lightgreen] (we5) [right=5.40cm of we1] {Weaken: tv in wf};
+    \node[state, fill=lightgreen] (we6) [right=5.40cm of we2] {Weaken: var in wf};
+
+    \node[state, fill=palegrey]   (su1) [above right=-0.25cm and 0.75cm of we2] {Substitute: tv in sub};% [250]};
+    \node[state, fill=lightgreen] (su2) [above of=su1]     {Substitute: tv in typ};% [300]};
+    \node[state, fill=palegrey]   (su3) [above of=su2]     {Substitute: var in sub};% [220]};
+    \node[state, fill=lightgreen] (su4) [above of=su3]     {Substitute: var in typ};% [270]};
+
+    \node[state, fill=lightgreen] (su5) [above=1.00cm of we6] {Substitute: tv in wf};
+    \node[state, fill=lightgreen] (su6) [above of=su5] {Substitute: var in wf};
+
+%%%    \begin{pgfonlayer}{background}
+%%%        \path (su4.west |- su4.north)+(-0.25,0.60) node (oa) {};
+%%%        \path (su1.south -| su1.east)+(0.25,-0.25) node (oc) {};
+        %\path[fill=orange!50,rounded corners, draw=black!50, dashed]
+        %    (oa) rectangle (oc);
+%%%        \path[rounded corners, draw=black!50, dashed]
+%%%            (oa) rectangle (oc) node (orangefill) {};
+%%%        \fill[pattern=custom north west lines,hatchspread=6pt,hatchthickness=1pt,hatchcolor=gray!40]
+%%%            (oa) rectangle (oc) ;
+%%%    \end{pgfonlayer}
+%%%    \begin{pgfonlayer}{background}
+%%%        \path (we4.west |- we4.north)+(-0.25,0.60) node (oa1) {};
+%%%        \path (we1.south -| we1.east)+(0.25,-0.25) node (oc1) {};
+        %\path[fill=orange!50,rounded corners, draw=black!50, dashed]
+        %    (oa) rectangle (oc);
+%%%        \path[rounded corners, draw=black!50, dashed]
+%%%            (oa1) rectangle (oc1) node (orangefill) {};
+%%%        \fill[pattern=custom north west lines,hatchspread=6pt,hatchthickness=1pt,hatchcolor=gray!40]
+%%%            (oa1) rectangle (oc1) ;
+%%%    \end{pgfonlayer}
+
+    \begin{pgfonlayer}{middleground}
+        \path (we4.west |- we4.north)+(-0.10,0.45) node (b3a) {};
+        \path (we1.south -| we1.east)+(0.10,-0.10) node (b3b) {};
+        \path (we4.north) +(0,0.20) node (b3cap) {Weakening Lemma (\ref{lem:weakening})};
+        \path[draw=black!70]
+            (b3a) rectangle (b3b) node (b3) {};
+    \end{pgfonlayer}
+    \begin{pgfonlayer}{middleground}
+        \path (we6.west |- we6.north)+(-0.10,0.45) node (b4a) {};
+        \path (we5.south -| we5.east)+(0.10,-0.10) node (b4b) {};
+        \path (we6.north) +(0,0.20) node (b4cap) {Weakening Lemma};
+        \path[draw=black!70]
+            (b4a) rectangle (b4b) node (b4) {};
+    \end{pgfonlayer}
+    \begin{pgfonlayer}{middleground}
+        \path (su4.west |- su4.north)+(-0.10,0.45) node (b5a) {};
+        \path (su1.south -| su1.east)+(0.10,-0.10) node (b5b) {};
+        \path (su4.north) +(0,0.20) node (b5cap) {Substitution Lemma (\ref{lem:subst})};
+        \path[draw=black!70]
+            (b5a) rectangle (b5b) node (b5) {};
+    \end{pgfonlayer}
+    \begin{pgfonlayer}{middleground}
+        \path (su6.west |- su6.north)+(-0.10,0.45) node (b6a) {};
+        \path (su5.south -| su5.east)+(0.10,-0.10) node (b6b) {};
+        \path (su6.north) +(0,0.20) node (b6cap) {Substitution Lemma};
+        \path[draw=black!70]
+            (b6a) rectangle (b6b) node (b6) {};
+    \end{pgfonlayer}
+
+    \begin{pgfonlayer}{foreground}
+        \path[every edge/.style={draw, ->, >={Stealth[width = 5pt, length = 7pt, inset=1pt,sep]}}]
+            (we5.north east) edge[sysfcolor, dashed, bend right] node {} (su6.south east)
+            (we2.north east) edge[sysfcolor, dashed, bend left] node {} (su3.south west)
+            (we5.north west) edge[sysfcolor, dashed, bend left] node {} (we3.south east)
+            (su5.north west) edge[sysfcolor, dashed, bend right] node {} (su3.south east);
+    \end{pgfonlayer}
+    \begin{pgfonlayer}{foreground}
+        \path[every edge/.style={draw, >-<, >={Stealth[width = 6pt, length = -5pt, inset=-8pt]}}]
+            (we1) edge[darkgreen, bend right=15] node {} (we2)
+            (we3) edge[darkgreen, bend right=15] node {} (we4)
+            (su1) edge[darkgreen, bend right=15] node {} (su2)
+            (su3) edge[darkgreen, bend right=15] node {} (su4);
+    \end{pgfonlayer}
+
+    % NEW REGION: Implication Interface 
+    \node[state, fill=palegrey]   (imp) [left=0.75cm of we1]   {Implication Interf. (Rq.~\ref{lem:implication})};% [55]};
+
+%%%    \begin{pgfonlayer}{background}
+%%%        \path (imp.west |- imp.north)+(-0.25,0.25) node (ia) {};
+%%%        \path (imp.south -| imp.east)+(0.25,-0.25) node (ic) {};
+        %\path[fill=red!50,rounded corners, draw=black!50, dashed]
+        %    (ra) rectangle (rc);
+%%%        \path[rounded corners, draw=black!50, dashed]
+%%%            (ia) rectangle (ic) node (redfill) {};
+%%%        \fill[pattern=dots, pattern color=gray!25]
+%%%            (ia) rectangle (ic);
+%%%    \end{pgfonlayer}
+
+    \begin{pgfonlayer}{foreground}
+        \path[every edge/.style={draw, ->, >={Stealth[width = 5pt, length = 7pt, inset=1pt,sep]}}]
+            (imp.east) edge[medgreen] node {} (we2.north west)
+            (imp.south east) edge[medgreen, bend right=60] node {} (su1.south west);
+    \end{pgfonlayer}
+
+    % PURPLE REGION: Denotational Soundness
+    \node[state, fill=palegrey]   (de3) [below=1.1cm of imp] {Den. Sound: subtyping};% [320]};
+    \node[state, fill=palegrey]   (de2) [right=0.75cm of de3] {Denot. Sound: typing};% [375]};
+    \node[state, fill=palegrey]   (de1) [right=0.75cm of de2] {Selfified Den. (\ref{denote-selfification})};% [115]};
+
+%%%    \begin{pgfonlayer}{background}
+%%%        \path (de2.west |- de2.south)+(-0.25,-0.25) node (pa) {};
+%%%        \path (de1.north -| de1.east)+(0.25,0.60) node (pc) {};
+        %\path[fill=violet!50,rounded corners, draw=black!50, dashed]
+        %   (pa) rectangle (pc);
+%%%        \path[rounded corners, draw=black!50, dashed]
+%%%            (pa) rectangle (pc) node (purplefill) {};
+%%%        \fill[pattern=custom horizontal lines, hatchspread=5pt, hatchthickness=0.75pt, hatchcolor=gray!35]
+%%%            (pa) rectangle (pc);
+%%%    \end{pgfonlayer}
+    \begin{pgfonlayer}{middleground}
+        \path (de3.west |- de3.north)+(-0.10,0.45) node (b7a) {};
+        \path (de2.south -| de2.east)+(0.10,-0.10) node (b7b) {};
+        \path (de3.north east) +(0,0.20) node (b7cap) {Denotational Soundness (\ref{denote-sound})};
+        \path[draw=black!70]
+            (b7a) rectangle (b7b) node (b7) {};
+    \end{pgfonlayer}
+
+    \begin{pgfonlayer}{foreground}
+        \path[every edge/.style={draw, ->, >={Stealth[width = 5pt, length = 7pt, inset=1pt,sep]}}]
+            (de1.west) edge[medgreen] node {} (de2.east);
+    \end{pgfonlayer}
+    \begin{pgfonlayer}{foreground}
+        \path[every edge/.style={draw, >-<, >={Stealth[width = 6pt, length = -5pt, inset=-8pt]}}]
+            (de2.west) edge[darkgreen, bend left=15] node {} (de3.east);
+    \end{pgfonlayer}
+    \begin{pgfonlayer}{foreground}
+        \path[every edge/.style={draw, ->, >={Stealth[width = 6pt, length = 5pt, inset=1pt,sep]}}]
+            (de2.north west) edge[darkgreen, bend right=15] node {} (imp);
+    \end{pgfonlayer}    
+
+    % RED REGION: Narrowing Lemma (and Exactness)
+    \node[state, fill=palegrey]   (na1) [left=5.25cm of su2]   {Exact Subtypes (\ref{lem:exact})};% [55]};
+    \node[state, fill=palegrey]   (na2) [above=0.70cm of na1]   {Exact Types (\ref{lem:exact})};% [100]};
+    \node[state, fill=palegrey]   (na3) [above=0.70cm of na2]   {Narrowing Lemma (\ref{lem:narrowing})};% [390]};
+
+%%%    \begin{pgfonlayer}{background}
+%%%        \path (na3.west |- na3.north)+(-0.25,0.25) node (ra) {};
+%%%        \path (na1.south -| na1.east)+(0.25,-0.25) node (rc) {};
+        %\path[fill=red!50,rounded corners, draw=black!50, dashed]
+        %    (ra) rectangle (rc);
+%%%        \path[rounded corners, draw=black!50, dashed]
+%%%            (ra) rectangle (rc) node (redfill) {};
+%%%        \fill[pattern=custom checkerboard, hatchcolor=gray!25]
+%%%            (ra) rectangle (rc);
+%%%    \end{pgfonlayer}
+
+    \begin{pgfonlayer}{foreground}
+        \path[every edge/.style={draw, ->, >={Stealth[width = 5pt, length = 7pt, inset=1pt,sep]}}]
+            (na1.north) edge[medgreen] node {} (na2.south)
+            (na2.north) edge[medgreen] node {} (na3.south)
+            (imp.north west) edge[medgreen, bend left=30] node {} (na3.west)
+            (na2.east) edge[medgreen, bend left=25] node {} (su2.north west);
+    \end{pgfonlayer}
+
+    % YELLOW REGION: Inversion of Typing
+    \node[state, fill=palegrey]   (in1) [above left=-0.25cm and 0.80cm of su4]   {Transitivity (\ref{lem:transitivity})};% [295]};
+    \node[state, fill=lightgreen] (in2) [above=0.60cm of in1]   {Inversion of Typing (\ref{lem:inversion})};% [80]};
+
+%%%    \begin{pgfonlayer}{background}
+%%%        \path (in2.west |- in2.north)+(-0.25,0.25) node (ya) {};
+%%%        \path (in1.south -| in1.east)+(0.25,-0.25) node (yc) {};
+        %\path[fill=yellow!50,rounded corners, draw=black!50, dashed]
+        %    (ya) rectangle (yc);
+%%%        \path[rounded corners, draw=black!50, dashed]
+%%%            (ya) rectangle (yc) node (yellowfill) {};
+%%%        \fill[pattern=custom vertical lines, hatchspread=5pt, hatchthickness=1pt, hatchcolor=gray!35]
+%%%            (ya) rectangle (yc);
+%%%    \end{pgfonlayer}
+    \begin{pgfonlayer}{middleground}
+        \path (in2.west |- in2.north)+(-0.10,0.10) node (in6a) {};
+        \path (in1.south -| in1.east)+(0.10,-0.45) node (in6b) {};
+        \path (in1.south) +(0,-0.20) node (in6cap) {Inversion};
+        \path[draw=black!70]
+            (in6a) rectangle (in6b) node (in6) {};
+    \end{pgfonlayer}
+    \begin{pgfonlayer}{foreground}
+        \path[every edge/.style={draw, ->, >={Stealth[width = 5pt, length = 7pt, inset=1pt,sep]}}]
+            (in1.north) edge[medgreen] node {} (in2.south)
+            (na3.east) edge[medgreen] node {} (in2.west)
+            (na3.east) edge[medgreen] node {} (in1.west)
+            (su4.west) edge[medgreen] node {} (in1.east);
+    \end{pgfonlayer}
+
+    % TOP REGION: Buildup to Progress and Preservation
+    %%\node[state, fill=lightgreen] (pr1) [left=0.75cm of in2]   {Canonical Forms};
+    \node[state, fill=lightgreen] (pr2) [right=0.75cm of in2]   {Primitives (Req. \ref{lem:prim-typing})};% [30]};
+    \node[state, fill=lightgreen] (pr3) [right=0.75cm of pr2]   {Polym. Prim. (Req. \ref{lem:prim-typing})};% [30]};
+    \node[state, fill=lightgreen] (pr4) [above left=0.70cm and 0.75cm of in2]   {Progress (\ref{lem:progressF})};% [55]};
+    \node[state, fill=lightgreen] (pr5) [right=0.75cm of pr4]   {Preservation (\ref{lem:preservationF})};% [125]};
+    \node[state, fill=lightgreen] (pr6) [right=0.75cm of pr5]   {Values Stuck};% [60]};
+    \node[state, fill=lightgreen] (pr7) [right=0.75cm of pr6]   {Det. Semantics};% [85]};
+
+    \begin{pgfonlayer}{foreground}
+        \path[every edge/.style={draw, ->, >={Stealth[width = 5pt, length = 7pt, inset=1pt,sep]}}]
+            (su4.north) edge[medgreen] node {} (pr2.south)          %% TO SECOND ROW
+            (su4.east) edge[medgreen] node {} (pr3.south)
+            (in2.north west) edge[sysfcolor, dashed] node {} (pr4.south)    %% TO FIRST ROW
+            (in2.north) edge[sysfcolor, dashed] node {} (pr5.south)
+            (pr2.north west) edge[sysfcolor, dashed] node {} (pr4.south)
+            (pr2.north west) edge[sysfcolor, dashed] node {} (pr5.south)
+            (pr3.north west) edge[sysfcolor, dashed] node {} (pr4.south east)
+            (pr3.north west) edge[sysfcolor, dashed] node {} (pr5.south east)
+            (su4.north west) edge[sysfcolor, dashed, bend right=0] node {} (pr5.south east)
+            (pr6.west) edge[sysfcolor, dashed] node {} (pr5.east)
+            (pr7.north west) edge[sysfcolor, dashed, bend right=20] node {} (pr5.north east);
+    %%        (pr1.north) edge[sysfcolor, bend left] node {} (pr4.south west)
+    %%        (pr1.north east) edge[sysfcolor] node {} (pr5.south west)
+    %%        (pr4.east) edge[sysfcolor] node {} (pr5.west)  %% REMOVED DEPENDENCY FROM PROOF
+    \end{pgfonlayer}
+
+    \end{tikzpicture}
+}
+\end{center}
+\vspace{-0.00cm}
+\caption{Dependencies in the metatheory. We write
+``var'' and ``tv'' to resp. abbreviate term and type variables.}
+%The number in brackets indicates lines of code.}
+\label{fig:graph}
+\vspace{-0.00cm}
+\end{figure}
+
+    % BLUE REGION: Substitution Lemma for Entailment Judgments
+    %\node[state, fill=palegrey]   (se1) [above=1.5cm of de3]   {Substitute: var in entail};% [165]};
+    %\node[state, fill=palegrey]   (se2) [above=0.4cm of se1] {Substitute: tv in entail};% [175]};
+
+    %\begin{pgfonlayer}{background}
+    %    \path (se2.west |- se2.north)+(-0.25,0.60) node (ba) {};
+    %    \path (se1.south -| se1.east)+(0.25,-0.25) node (bc) {};
+    %    %\path[fill=blue!50,rounded corners, draw=black!50, dashed]
+    %    %    (ba) rectangle (bc);
+    %    \path[rounded corners, draw=black!50, dashed]
+    %        (ba) rectangle (bc) node (bluefill) {};
+    %    \fill[pattern=custom crosshatch dots, hatchspread=2.5pt, hatchthickness=0.25pt, hatchcolor=gray!35]
+    %        (ba) rectangle (bc);
+    %\end{pgfonlayer}
+    %\begin{pgfonlayer}{middleground}
+    %    \path (se2.west |- se2.north)+(-0.10,0.45) node (b8a) {};
+    %    \path (se1.south -| se1.east)+(0.10,-0.10) node (b8b) {};
+    %    \path (se2.north) +(0,0.20) node (b8cap) {Substitution Lemma};
+    %    \path[draw=black!70]
+    %        (b8a) rectangle (b8b) node (b8) {};
+    %\end{pgfonlayer}
+
+    %\begin{pgfonlayer}{foreground}
+    %    \path[every edge/.style={draw, ->, >={Stealth[width = 5pt, length = 7pt, inset=1pt,sep]}}]
+    %        (de3.north) edge[medgreen, bend right=15] node {} (se1.south)
+    %        (se1.east) edge[medgreen] node {} (su1.west)
+    %        (se2.east) edge[medgreen] node {} (su3.west);
+    %\end{pgfonlayer}
+    %\begin{pgfonlayer}{foreground}
+    %    \path[every edge/.style={draw, >-<, >={Stealth[width = 6pt, length = -5pt, inset=-8pt]}}]
+    %        (se1) edge[darkgreen, bend right=15] node {} (se2);
+    %\end{pgfonlayer}

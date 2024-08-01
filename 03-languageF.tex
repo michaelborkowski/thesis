@@ -1,0 +1,536 @@
+\chapter{The Language \sysf}
+\label{sec:language}
+
+As a warmup, this chapter presents the metatheory of our underlying
+unrefined calculus $\sysf$, a polymorphic lambda calculus 
+in the vein of System F \cite{TAPL} 
+extended with the same primitives and 
+syntactic featues as our refined language \sysrf.
+
+\section{Syntax}
+
+We present the full syntax of the unrefined language \sysf. 
+
+
+
+
+Because the (term-level) syntax of \sysf must exactly match 
+the sytnax of \sysrf, the terms 
+
+and
+
+contain refined types from \sysrf
+
+\begin{conference}
+\begin{figure}[b!]
+  {\small
+    \begin{tabular}{rrcll}
+\emphbf{Primitives} 
+  & \sconst & $\bnfdef$ & $\ttrue$ $\spmid$ $\tfalse$ $\spmid$  
+  $0, 1, 2, \ldots$ 
+  $\spmid$  $\wedge, \neg$ 
+  $\spmid$  $\leq, \sconst\!\!\leq, =,  \sconst\!\!=$                             
+  \\
+\emphbf{Values}
+  & \sval   & $\bnfdef$ & \sconst  
+  $\spmid  x, y, \ldots
+  \spmid   \vabs{x}{e}
+  \spmid   \tabs{\alpha}{k}{e}
+  $
+  &\\
+\emphbf{Terms}
+  & \sexpr  & $\bnfdef$ & 
+  $
+  \sval \spmid \app{e_1}{e_2} \spmid \tyapp{e}{t} \spmid \eletin{x}{e_1}{e_2} 
+  \spmid \tyann{e}{t} \spmid \eif{e}{e_1}{e_2} \spmid \eerr
+  $ 
+\end{tabular}
+}
+\caption{Syntax of Primitives, Values, and Expressions.}
+\label{fig:syn:terms}
+\vspace{-0.0cm}
+\end{figure}
+\end{conference}
+
+
+\begin{fullversion}
+\begin{figure}[t!]
+  \scalebox{0.80}{
+    \begin{tabular}{rrcll}
+\emphbf{Primitives} 
+  & \sconst & $\bnfdef$ & $\ttrue$ $\spmid$ $\tfalse$ $\spmid$  $0, 1, 2, \ldots$    & \emph{booleans and integers} \\
+%  &         & $\spmid$  & $0, 1, 2, \ldots$                     & \emph{integers} \\ 
+  &         & $\spmid$  & $\wedge, \vee, \neg, \leftrightarrow$ & \emph{boolean ops.} \\
+  &         & $\spmid$  & $\leq, =$                             & \emph{polymorphic comparisons} \\ [0.05in] 
+
+\emphbf{Values}
+  & \sval   & $\bnfdef$ & \sconst               & \emph{primitives} \\ 
+  &         & $\spmid$  & x, y, \ldots          & \emph{variables} \\
+  &         & $\spmid$  & \vabs{x}{e}           & \emph{abstractions} \\
+  &         & $\spmid$  & \tabs{\alpha}{k}{e}   & \emph{type abstractions} \\[0.05in]
+
+\emphbf{Terms}
+  & \sexpr  & $\bnfdef$ & \sval                 & \emph{values} \\ 
+  &         & $\spmid$  & \app{e_1}{e_2}        & \emph{applications} \\
+  &         & $\spmid$  & \tyapp{e}{t}          & \emph{type applications} \\
+  &         & $\spmid$  & \eletin{x}{e_1}{e_2}  & \emph{let-binders} \\
+  &         & $\spmid$  & \tyann{e}{t}          & \emph{annotations} \\
+  &         & $\spmid$  & \eif{e_0}{e_1}{e_2}   & \emph{conditionals} \\
+  &         & $\spmid$  & \eerr                 & \emph{runtime errors} \\
+\end{tabular}
+  }
+  \vspace{-0.4cm}
+  \caption{Syntax of Primitives, Values, and Expressions.}
+\label{fig:syn:terms}
+\vspace{-0.4cm}
+\end{figure}
+\end{fullversion}
+
+
+
+
+
+
+\begin{figure}[t!]
+{\small
+  \begin{tabular}{rrcll}
+  \emphbf{Kinds} 
+    & \skind & $\bnfdef$ & $\skbase \spmid \skstar$ & \emph{base and star kind} \\[0.05in]
+%    &        & $\spmid$  & \skstar & \emph{star kind} \\[0.05in]
+  
+  \emphbf{Predicates}  
+    & \spred & $\bnfdef$ & $\greybox{\{ e \;|\; \exists\, \tcenv.\, \hasftype{\tcenv}{\sexpr}{\tbool} \}}$ & \greytextbox{\emph{boolean-typed terms}} 
+    \\[0.05in] 
+  
+  \emphbf{Base Types} 
+    & \sbase & $\bnfdef$ & $\tbool \spmid \tint \spmid \tvar$ 
+    & \emph{bool, ints, and type variables} 
+    \\[0.05in] 
+
+  \emphbf{Types}
+%  & \stype & $\bnfdef$ & $\sbase\greybox{\!\breft{}{\vv}{\spred}}$  
+%             $\spmid$   $\greybox{x\!}\!\functype{}{t_x}{t}$ 
+%             $\spmid$   \greybox{\existype{x}{t_x}{t}} 
+%            $\spmid$   $\polytype{\tvar}{\skind}{t}$  & \\ [0.05in]    
+% RESTORE IF THERE IS SPACE     
+   & \stype & $\bnfdef$ & $\sbase\greybox{\!\breft{}{\vv}{\spred}}$  & \emph{\greytextbox{refined} base type} \\ 
+   &        & $\spmid$  & $\greybox{x\!}\!\functype{}{t_x}{t}$         & \emph{function type}     \\        
+   &        & $\spmid$  & \greybox{\existype{x}{t_x}{t}} & \greytextbox{\emph{existential type}}  \\        
+   &        & $\spmid$  & $\polytype{\tvar}{\skind}{t}$  & \emph{polymorphic type}  \\ [0.05in]        
+
+  \emphbf{Environments}
+    & $\tcenv$ & $\bnfdef$ & 
+    $\varnothing \spmid \tcenv, \bind{x}{t} \spmid \tcenv, \bind{\tvar}{\skind}$                  
+    & \emph{variable and type bindings} 
+  \end{tabular}
+}
+\vspace{-0.2cm}
+  \caption{Syntax of Types. % and Environments.
+           The grey boxes are the extensions 
+           to $\sysf$ needed by $\sysrf$.
+           We use $\sftype$ for $\sysf$-only types.}
+  \label{fig:syn:types}
+  \label{fig:syn:reft}
+  \label{fig:syn:env}
+  \vspace{-0.4cm}
+\end{figure}
+
+\subsection{Syntax} \label{sec:lang:syntax}
+
+
+\mypara{Constants, Values and Terms}
+%
+\Cref{fig:syn:terms} summarizes the 
+syntax of terms in both calculi.
+%
+%Terms are stratified into primitive \emph{constants} 
+%and \emph{values}.
+%
+The \emph{primitives} $\sconst$
+include \tint and \tbool constants, 
+boolean operations, 
+the polymorphic comparison and equality, 
+and their curried versions.
+%
+%For clarity we will write both the 
+%polymorphic equality and the monomorphic 
+%equality for $\tint$ as $=$ in our refinements
+%and elide the type application.
+%\NV{Why do we need both int and polymorphic equality? 
+%Isn't inequalities also polymorphic? This is what I assumed in the overview max example}
+%
+\emph{Values} $\sval$ are 
+%those expressions 
+%which cannot be evaluated any further, 
+%including primitive 
+constants, binders 
+and $\lambda$- and type- abstractions.
+%
+Finally, the \emph{terms} $\sexpr$ comprise values,
+value- and type- applications, let-binders, 
+annotated expressions, conditionals, and runtime errors.
+The types in annotations are, potentially wrong, specifications 
+written by the user and checked by the type checker.  
+
+
+\mypara{Kinds \& Types}       
+%
+\Cref{fig:syn:types} shows the syntax of the types,
+with the grey boxes indicating the extensions to $\sysf$ 
+required by $\sysrf$.
+%
+In \sysrf, only base types % \tbool, \tint, and \tvar
+can be refined: we do not permit refinements 
+for functions and polymorphic types. 
+%
+\sysrf enforces this restriction using two kinds
+which denote types that may ($\skbase$) or may not ($\skstar$)
+be refined.
+%
+The (unrefined) \emph{base} types $\sbase$ comprise 
+$\tint$, $\tbool$, and type variables $\tvar$. 
+%
+The simplest type is of the form
+$\breft{\sbase}{\vv}{\spred}$ 
+comprising a base type $\sbase$ 
+and a \emph{refinement} that restricts 
+$\sbase$ to the subset of values 
+$\vv$ that satisfy $\spred$ \ie 
+for which $\spred$ evaluates to $\ttrue$.
+%
+We use refined base types to build up
+dependent function types (where the input 
+parameter $x$ can appear in the output type's 
+refinement), existential and polymorphic 
+types.
+%
+%Note that $\sbase$ by itself denotes the trivially 
+%refined type $\breft{\sbase}{\vv}{\ttrue}$.
+In the sequel, we write $\sbase$ to abbreviate 
+$\breft{\sbase}{\vv}{\ttrue}$
+%, particularly for type variables, 
+and call types refined with only \ttrue 
+``trivially refined'' types. 
+
+\mypara{Refinement Erasure}
+%
+The reduction semantics of our polymorphic 
+primitives are defined 
+using an \emph{erasure} function that 
+returns the unrefined, \sysf version of a refined \sysrf type:
+\[
+  \forgetreft{ \breft{\sbase}{\vv}{\spred} } \defeq \sbase, \quad 
+  \forgetreft{ \functype{x}{t_x}{t} } \defeq \forgetreft{t_x} \rightarrow \forgetreft{t}, \quad
+  \forgetreft{ \existype{x}{t_x}{t} } \defeq \forgetreft{t}, \quad{\rm and} \quad
+  \forgetreft{ \polytype{\al}{k}{t} } \defeq \polytype{\al}{k}{\forgetreft{t}}
+\]
+
+
+\mypara{Environments}
+%
+\Cref{fig:syn:env} describes 
+the syntax of typing environments 
+$\tcenv$ which contain both term 
+variables bound to types and type 
+variables bound to kinds. 
+%
+These variables may appear in types 
+bound later in the environment.
+%
+In our formalism, environments grow 
+from right to left.
+%
+
+\mypara{Note on Variable Representation}
+Our metatheory requires that all variables 
+bound in the environment are distinct. 
+%
+Our mechanization enforces this invariant 
+via the locally nameless representation~\cite{Aydemir05}: 
+free and bound variables are distinct objects 
+in the syntax, as are type and term variables.
+%
+All free variables have unique names which
+never conflict with bound variables represented as 
+de Bruijn indices. This eliminates
+the possibility of capture in substitution
+and the need to perform alpha-renaming during
+substitution. 
+The locally nameless representation avoids %the need for 
+technical manipulations such as index shifting by using 
+names instead of indices for  free variables 
+(we discuss alternatives in~\S~\ref{sec:related}).
+%
+To simplify the presentation of the syntax and rules, we 
+use names for bound variables to make the dependent nature
+of the function arrow clear.
+
+\subsection{Dynamic Semantics} \label{sec:lang:dynamic}
+\begin{figure}
+  {\small
+  \begin{mathpar} %%%%%%%%% SMALL-STEP SEMANTICS %%%%%%%%%%
+    \judgementHead{Operational Semantics}{$\sexpr \step \sexpr'$}\\
+        \inferrule%*[Right=\ePrim]
+        {  }
+        {\app{\sconst}{\sval} \step \delta(\sconst,\sval)}
+        {\ePrim} 
+        \quad
+        \inferrule%*[Right=\eTPrim]
+        {  }
+        {\tyapp{\sconst}{\stype} \step \delta_T(\sconst,\forgetreft{\stype})}
+        {\eTPrim} 
+        \quad
+        \inferrule%*[Right=\eAnn]
+        {\sexpr \step \sexpr'}{\tyann{\sexpr}{\stype} \step \tyann{\sexpr'}{\stype}}
+        {\eAnn}
+        \quad
+        \inferrule%*[Right=\eAnnV]
+        { }
+        {\tyann{\sval}{\stype} \step \sval}
+        {\eAnnV}
+        \\
+        \inferrule%*[Right=\eApp]
+        {\sexpr \step \sexpr'}
+        {\app{\sexpr}{\sexpr_1} \step \app{\sexpr'}{\sexpr_1}}
+        {\eApp} 
+        \quad
+        \inferrule%*[Right=\eAppV]
+        {\sexpr \step \sexpr'}
+        {\app{\sval}{\sexpr} \step \app{\sval}{\sexpr'}}
+        {\eAppV} 
+        \quad
+        \inferrule%*[Right=\eAppAbs]
+        { }
+          {\app{(\vabs{x}{\sexpr})}{\sval} \step \subst{\sexpr}{x}{\sval}}
+          {\eAppAbs} 
+          \quad
+          \inferrule%*[Right=\eTAppAbs]
+          { }
+          {\tyapp{(\tabs{\tvar}{\skind}{\sexpr})}{\stype} \step \subst{\sexpr}{\tvar}{\stype}}
+          {\eTAppAbs} 
+        \\
+        \inferrule%*[Right=\eTApp]
+        {\sexpr \step \sexpr'}
+        {\tyapp{\sexpr}{t} \step \tyapp{\sexpr'}{t}}
+        {\eTApp} 
+        \quad
+        \inferrule% *[Right=\eLet]
+          { \sexpr_x \step \sexpr'_x}
+          {\eletin{x}{\sexpr_x}{\sexpr} \step \eletin{x}{\sexpr'_x}{\sexpr}}
+          {\eLet} 
+          \quad
+        \inferrule% *[Right=\eLetV]
+        { }
+        {\eletin{x}{\sval}{\sexpr} \step \subst{\sexpr}{x}{\sval}}
+        {\eLetV} 
+        \\
+        \inferrule%*[Right=\eIf]
+          {\sexpr \step \sexpr'}
+          {\eif{\sexpr}{\sexpr_1}{\sexpr_2} \step \eif{\sexpr'}{\sexpr_1}{\sexpr_2}}
+          {\eIf} 
+        \\
+        \inferrule% *[Right=\eIfT]
+          {   }
+          {\eif{\ttrue}{\sexpr_1}{\sexpr_2} \step \sexpr_1}
+          {\eIfT} 
+          \quad
+        \inferrule% *[Right=\eIfF]
+          { }
+          {\eif{\tfalse}{\sexpr_1}{\sexpr_2} \step \sexpr_2}
+          {\eIfF} 
+        \end{mathpar}        
+    }
+%  \caption{The small-step semantics.} 
+%  \label{fig:e}
+%  \label{fig:opsem}
+%\end{figure}
+
+
+
+%\begin{figure}[t!]
+{\small
+%\begin{array}{r@{\hskip 0.05in}c@{\hskip 0.05in}l}
+\begin{tabular}{r@{\hskip 0.05in}c@{\hskip 0.05in}l}
+$\subst{\breft{\tvarb}{x}{p}}{\al}{t_\al}$       & $\defeq$ & $\breft{\tvarb}{x}{\subst{p}{\al}{t_\al}}, \al \not = \tvarb$ \\ 
+$\subst{(\functype{x}{t_x}{t})}{\al}{t_\al}$     & $\defeq$ & $\functype{x}{(\subst{t_x}{\al}{t_\al})}{\subst{t}{\al}{t_\al}}$ \\ 
+$\subst{(\existype{x}{t_x}{t})}{\al}{t_\al}$     & $\defeq$ & $\existype{x}{(\subst{t_x}{\al}{t_\al})}{\subst{t}{\al}{t_\al}}$ \\ 
+$\subst{(\polytype{\tvarb}{k}{t})}{\al}{t_\al}$  & $\defeq$ & $\polytype{\tvarb}{k}{\subst{t}{\al}{t_\al}}$ \\
+$\subst{\breft{\al}{x}{p}}{\al}{t_\al}$          & $\defeq$ & $\strengthen{t_\al}{\subst{p}{\al}{t_\al}}{x}$ \\
+\end{tabular}
+\begin{tabular}{r@{\hskip 0.05in}c@{\hskip 0.05in}l}
+$\strengthen{\breft{\al}{z}{q}}{p}{x}$           & $\defeq$ & $\breft{\al}{z}{\subst{p}{x}{z} \wedge q}$ \\
+$\strengthen{\existype{z}{t_z}{t}}{p}{x}$        & $\defeq$ & $\existype{z}{t_z}{\strengthen{t}{p}{x}}$ \\
+$\strengthen{\functype{x}{t_x}{t}}{\_}{\_}$      & $\defeq$ & $\functype{x}{t_x}{t}$ \\
+$\strengthen{\polytype{\al}{k}{t}}{\_}{\_}$      & $\defeq$ & $\polytype{\al}{k}{t}$ \\
+&& \\
+%\end{array}
+\end{tabular}
+}
+% $$\begin{array}{rcl}
+% \subst{\breft{\tvarb}{x}{p}}{\al}{t_\al}       & \defeq & \breft{\tvarb}{x}{\subst{p}{\al}{t_\al}} \\ 
+% \subst{(\functype{x}{t_x}{t})}{\al}{t_\al}     & \defeq & \functype{x}{(\subst{t_x}{\al}{t_\al})}{\subst{t}{\al}{t_\al}} \\
+% \subst{(\existype{x}{t_x}{t})}{\al}{t_\al}     & \defeq & \existype{x}{(\subst{t_x}{\al}{t_\al})}{\subst{t}{\al}{t_\al}} \\
+% \subst{(\polytype{\tvarb}{k}{t})}{\al}{t_\al}  & \defeq & \polytype{\tvarb}{k}{\subst{t}{\al}{t_\al}} \\
+% \subst{\breft{\al}{\vv}{p}}{\al}{\stype}       & \defeq & \strengthen{\stype}{\subst{p}{\al}{\stype}} \\ [0.05in] 
+% \strengthen{\breft{\al}{z}{q}}{p}              & \defeq & \breft{\al}{z}{p \wedge q} \\
+% \strengthen{\existype{z}{t_z}{t}}{p}           & \defeq & \existype{z}{t_z}{\strengthen{t}{p}} \\
+% \strengthen{\functype{x}{t_x}{t}}{p}           & \defeq & \functype{x}{t_x}{t} \\
+% \strengthen{\polytype{\al}{k}{t}}{p}           & \defeq & \polytype{\al}{k}{t} \\
+% \end{array}$$
+\vspace{-0.2cm}
+\caption{The small-step semantics and type substitution.} 
+\label{fig:type-subst}
+\label{fig:e}
+\label{fig:opsem}
+\vspace{-0.4cm}
+\end{figure}
+
+\Cref{fig:opsem} summarizes the substitution-based, 
+call-by-value, contextual, small-step semantics 
+for both calculi.
+%
+We specify the reduction semantics 
+of the primitives using the functions 
+$\delta$ and $\delta_T$.
+
+\mypara{Substitution} 
+%
+% \NV{Put the definitions in Subst Figure one after the other, now that there is space?}
+The key difference with standard formulations
+is the notion of substitution for type variables 
+at (polymorphic) type-application sites as shown 
+in rule $\eTAppAbs$.
+%
+Type 
+substitution is defined at the bottom left of~\Cref{fig:opsem}
+and it is standard except 
+for the last line which defines the substitution 
+of a type variable $\al$ in a refined type variable 
+${\breft{\al}{x}{p}}$ with a 
+(potentially refined)
+type $\stype_\al$.
+%
+To do this substitution, we combine $p$ with the type $\stype_\al$ 
+by using $\strengthen{\stype_\al}{p}{x}$ 
+which essentially conjoins the refinement $p$ 
+to the top-level refinement of a base-kinded 
+$\stype_\al$. 
+%
+For existential types, $\mathsf{refine}$ 
+\emph{pushes} the refinement through the 
+existential quantifier. 
+%
+Function and quantified types are left unchanged 
+as they cannot instantiate a \emph{refined} 
+type variable (which must be of base kind).
+
+% Given the $\mathsf{strengthen}$ function we can define 
+% \begin{equation*}
+%   \subst{\breft{\al}{\vv}{p}}{\al}{\stype} \defeq \strengthen{\stype}{\subst{p}{\al}{\stype}}
+% \end{equation*}
+
+% In order to define substitution of a type variable
+% by an arbitrary type in $\subst{\breft{\al}{\vv}{p}}{\al}{\stype}$, 
+% we would simply write $\breft{\stype}{\vv}{\subst{p}{\al}{\stype}}$ 
+% if we could stack refinements arbitrarily.
+% %
+% We have already covered the case of $\stype$ being a refinement type
+% above. In the case of an existential type, we can 
+% ``push'' the refinement $\breft{\xspace}{\vv}{\subst{p}{\al}{\stype}}$
+% through the existential quantifier and define:
+% \begin{equation*}
+%   \subst{\breft{\al}{\vv}{p}}{\al}{\existype{z}{t_z}{t}} \defeq
+%   \existype{z}{t_z}{ \subst{\breft{\al}{\vv}{p}}{\al}{t} }.
+% \end{equation*}
+% %
+% These are the only two cases we need to elaborate: $\stype$ must have
+% base kind unless $\al$ is unrefined (\ie, $p = \ttrue$), so
+% $\stype$ cannot be a function type or a polymorphic type in a valid
+% substitution into a refined type variable. 
+% %
+% For an unrefined type variable we can define simply
+% $\subst{\al}{\al}{t} \defeq t$.
+
+% To facilitate a unified definition for the substitution of a
+% type variable by an arbitrary type, we define an auxiliary 
+% function $\mathsf{strengthen}$ that describes how we ``push''
+% a predicate into a base kinded type:
+% \begin{align*}
+%   \strengthen{\breft{\al}{z}{q}}{p}    & \defeq \breft{\al}{z}{p \wedge q} \\
+%   \strengthen{\functype{x}{t_x}{t}}{p} & \defeq \functype{x}{t_x}{t} \\
+%   \strengthen{\existype{z}{t_z}{t}}{p} & \defeq \existype{z}{t_z}{\strengthen{t}{p}} \\
+%   \strengthen{\polytype{\al}{k}{t}}{p} & \defeq \polytype{\al}{k}{t}
+% \end{align*}
+% Given the $\mathsf{strengthen}$ function we can define 
+% \begin{equation*}
+%   \subst{\breft{\al}{\vv}{p}}{\al}{\stype} \defeq \strengthen{\stype}{\subst{p}{\al}{\stype}}
+% \end{equation*}
+% % \RJ{define and use a SUBST macro}
+% % \RJ{i cannot even understand defs below}
+
+
+\mypara{Primitives}
+%
+The function $\delta(\sconst, \sval)$ 
+evaluates the application $\app{\sconst}{\sval}$ 
+of built-in monomorphic primitives.
+%
+The reductions are defined in a curried 
+manner, \ie 
+$\app{\app{\leq}{m}}{n}$ evaluates to $\delta(\delta(\leq,m),n)$. 
+%we have that $\app{\app{\leq}{m}}{n} \steps \delta(\delta(\leq,m),n)$. 
+%
+Currying gives us unary relations like $m\!\!\leq$ 
+which is a partially evaluated version of the $\leq$ relation.
+%
+The function $\delta_T(\sconst, \forgetreft{\stype})$
+specifies the reduction rules for type 
+application on the polymorphic 
+built-in primitives. % $=$ and $\leq$.
+%
+$$\begin{array}{rclrclrcl}
+\delta(\wedge,{\tt true}) & \defeq & \lambda x.\, x &
+\delta(\leq,m) & \defeq & m\!\!\leq  & 
+    \delta_T(=, \tbool) & \defeq & =  \\
+\delta(\wedge,{\tt false}) & \defeq & \lambda x.\, {\tt false}\quad\quad &
+\delta(m\!\!\leq, n) & \defeq & {\tt}(m \leq n) \quad\quad&
+\delta_T(=, \tint) & \defeq & = \\
+\delta(\neg,{\tt true}) & \defeq & {\tt false} & 
+\delta(=,m) & \defeq & m\!\!= &
+\delta_T(\leq, \tbool) & \defeq & \leq  \\
+  \delta(\neg,{\tt false}) & \defeq &  {\tt true} &
+  \delta(m\!\!=, n) & \defeq &  {\tt}(m = n) &
+  \delta_T(\leq, \tint) & \defeq & \leq  \\
+%
+%  \delta(\vee,{\tt true}) & \defeq & \lambda x.\, {\tt true} &
+%  \delta(\leftrightarrow,{\tt true}) & \defeq & \lambda x.\, x & 
+%    &  & \\
+%    \delta(\vee,{\tt false}) & \defeq & \lambda x.\, x &
+%    \delta(\leftrightarrow,{\tt false}) & \defeq & \lambda x.\, \neg x &
+%    & & \\
+\end{array}$$
+         
+% SAFETY --> Progress --> + Prim
+%                         + Canonical
+
+%        --> Preserve --> + Determinism
+%                         + Substitution
+
+
+  
+\mypara{Determinism}
+%
+Our soundness proof  uses the determinism 
+property of the operational semantics.
+%
+\begin{lemma}[Determinism]\label{lem:step-determ}
+For every expression $\sexpr$, 
+%\begin{itemize} 
+    %\item 
+    1) there exists at most one term $\sexpr'$ \suchthat $\sexpr \step \sexpr'$, 
+    %\item 
+    2) there exists at most one value $\sval$ \suchthat $\evalsTo{\sexpr}{\sval}$, and
+    %\item 
+    3) if $\sexpr$ is a value there is no term $\sexpr'$ \suchthat $\sexpr \step \sexpr'$.
+%\end{itemize}
+\end{lemma}    
