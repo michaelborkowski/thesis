@@ -306,6 +306,49 @@ $\breft{\tlist{\stype}}{x}{\spred}$.
 %
 The purpose of this refinement is to embed the information about
 the specific length of a list at the refinement level.
+%
+Our typing rule for the list destructor 
+$\switch{\sexpr}{\sexpr_n}{\sexpr_c}$ is 
+best thought of as analogous to our rule $\tIf$
+because it enables path-sensitive reasoning about lists.
+%
+This rule $\tSwitch$ says that whenever the match scrutinee
+$\sexpr$ can be given a list type 
+$\breft{\tlist{\stype}}{x}{\spred}$ in some environment,
+whenever $\stype'$ is well-typed in the same environment,
+and whenver each branch can be given this type
+$\stype'$ in this environment augmented by the knowledge 
+that the about the scrutinee and its length, then the full
+term $\switch{\sexpr}{\sexpr_n}{\sexpr_c}$ can be given type
+$\stype'$. 
+%
+Note that, per the semantics in \ref{fig:eD}, the cons-branch
+$\sexpr_c$ is a function expecting two arguments: the head
+of the scrutinee and the tail (which we know has length
+one less than the scrutinee).
+%
+In our formalism, it is neccessary for us to augment the 
+environment with \emph{two} dummy variables here. We need
+to preserve $\spred$,
+the knowledge obtained from the match scrutinee,
+and the fact that the scrutinee is one element longer than
+the tail to which $\sexpr_c$ is being applied.
+%
+We could express the antecedent judgment as
+\[
+\forall\notmem{z}{\tcenv}. 
+  \hastype{\bind{z}{\breft{\tlist{\stype}}{x}{p},\tcenv}}
+     {\sexpr_c}
+     {\funcftype{\stype}{\funcftype{\tlist{\stype}\greybox{\breft{}{\vv}{\suc \len \vv = \len y}}}{\stype'}}}
+\]
+but this would pose a problem for proving type soundness 
+for \sysrfd (specifically preservation)
+from a minimal interace of axioms (\ref{lem:implicationD}) 
+for implication.
+%
+These axioms are syntactic, and so slight variations
+
+
 
 \begin{figure}
 %  {\small
