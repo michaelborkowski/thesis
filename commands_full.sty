@@ -10,6 +10,7 @@
 \newcommand\spred{\ensuremath{p}\xspace}
 \newcommand\sconst{\ensuremath{c}\xspace}
 \newcommand\sval{\ensuremath{v}\xspace}
+\newcommand\slval{\ensuremath{\ell}\xspace}
 \newcommand\sexpr{\ensuremath{e}\xspace}
 \newcommand\skind{\ensuremath{k}\xspace}
 \newcommand\skstar{\ensuremath{\star}\xspace}
@@ -106,6 +107,11 @@
 \newcommand\eIf{\rulename{E\=/PIf}}
 \newcommand\eIfT{\rulename{E\=/IfT}}
 \newcommand\eIfF{\rulename{E\=/IfF}}
+\newcommand\eCons{\rulename{E\=/PLCons}}
+\newcommand\eConsV{\rulename{E\=/PRCons}}
+\newcommand\eSwitch{\rulename{E\=/PSwitch}}
+\newcommand\eSwitchN{\rulename{E\=/SwitchN}}
+\newcommand\eSwitchC{\rulename{E\=/SwitchC}}
 
     % Well-Formed ``System F'' types, WFFT-
 \newcommand\wfftBasic{\rulename{WFFT\=/Basic}}
@@ -124,9 +130,8 @@
 \newcommand\wtExis{\rulename{WF\=/Exis}}
 \newcommand\wtPoly{\rulename{WF\=/Poly}}
 \newcommand\wtKind{\rulename{WF\=/Kind}}
-%\newcommand\wtIFun{\rulename{WF\=/FunI}}
-%\newcommand\wtApp{\rulename{WF\=/App}}
-%\newcommand\wtSigma{\rulename{WF\=/Sigma}}
+\newcommand\wtList{\rulename{WF\=List}}
+\newcommand\wtListR{\rulename{WF\=/ListR}}
 
 %\newcommand\wtPred{\rulename{WF\=/Abs\=/$\rvar$}}
 %\newcommand\wtPoly{\rulename{WF\=/Abs\=/$\alpha$}}
@@ -169,18 +174,9 @@
 \newcommand\tLet{\rulename{T\=/Let}}
 \newcommand\tAnn{\rulename{T\=/Ann}}
 \newcommand\tSub{\rulename{T\=/Sub}}
-%\newcommand\tAbsi{\rulename{T\=/AbsI}}
-%\newcommand\tLetReft{\rulename{T\=/Let\=/t}}
-%\newcommand\tLetBase{\rulename{T\=/Let\=/$\tau$}}
-%\newcommand\tCon{\rulename{T\=/Con}}
-%\newcommand\tAbsReft{\rulename{T\=/Abs\=/t}}
-%\newcommand\tAbsBase{\rulename{T\=/Abs\=/$\tau$}}
-%\newcommand\tAppAtom{\rulename{T\=/App\=/Atom}}
-%\newcommand\tAppFun{\rulename{App}$^e$}
-%\newcommand\tAppFunVar{\rulename{App}$^y$}
-%\newcommand\tAppIFun{\rulename{AppI}}
-%\newcommand\tAppForall{\rulename{T\=/App\=/$\forall$}}
-%\newcommand\tUnpack{\rulename{T\=/Unpack}}
+\newcommand\tNil{\rulename{T\=/Nil}}
+\newcommand\tCons{\rulename{T\=/Cons}}
+\newcommand\tSwitch{\rulename{T\=/Switch}}
 
     % Sys F Typing Rules, F-
 \newcommand\fPrim{\rulename{FT\=/Prim}}
@@ -256,6 +252,12 @@
 \newcommand{\tfalse}{\ensuremath{\mathtt{false}}\xspace}
 \newcommand{\ttrue}{\ensuremath{\mathtt{true}}\xspace}
 
+
+\newcommand{\suc}{\ensuremath{\mathtt{succ}\;}\xspace}
+\newcommand{\len}{\ensuremath{\mathtt{len}\;}\xspace}
+\newcommand{\nil}[1]{\ensuremath{\texttt{nil}\;[{#1}]}\xspace}
+\newcommand{\cons}[3]{\ensuremath{\texttt{cons}\;[{#1}]\;{#2}\;{#3}}\xspace}
+
 \newcommand{\ebd}[2]{{#1}\mathrel{\hat{:}}{#2}}
 \newcommand{\fbd}[2]{{#1}:{#2}}
 
@@ -263,6 +265,7 @@
 \newcommand{\polytype}[3]{\forall\, #1\bindt #2.\, #3}
 \newcommand{\functype}[3]{#1\bindt #2 \rightarrow #3}
 \newcommand{\funcftype}[2]{#1 \rightarrow #2} % System F
+\newcommand{\listtype}[1]{[#1]}
 
 % 2.2: Expressions
 
@@ -270,6 +273,7 @@
 \newcommand\elet{\kw{let}\xspace}
 \newcommand\eerr{\kw{error}\xspace}
 \newcommand{\eif}[3]{\ensuremath{\s{\texttt{if}}\;{#1}\;\s{\texttt{then}}\;{#2}\;\s{\texttt{else}}\;{#3}}}
+\newcommand{\eswitch}[3]{\ensuremath{\s{\texttt{switch}}\;({#1})\;{#2}\;{#3}}}
 
 \newcommand{\app}[2]{\ensuremath{{#1}\;{#2}}\xspace}
 \newcommand{\tabs}[3]{\ensuremath{\Lambda{#1}\bindt{#2}}.{#3}}
@@ -446,8 +450,8 @@
 \newcommand{\constty}[1]{\ensuremath{\algo{prim}(#1)}}
 \newcommand{\kvars}[1]{\ensuremath{\kvarssym({#1})}}
 \newcommand{\evars}[1]{\ensuremath{\evarssym(#1)}}
-\newcommand{\cons}[2]{\ensuremath{\conssym(#1,\ #2)}}
-\newcommand{\ccons}[3]{\ensuremath{\conssym(#1,\ #2,\ #3)}}
+%\newcommand{\cons}[2]{\ensuremath{\conssym(#1,\ #2)}}
+%\newcommand{\ccons}[3]{\ensuremath{\conssym(#1,\ #2,\ #3)}}
 \newcommand{\dep}[1]{\ensuremath{\depssym(#1)}}
 \newcommand{\depstar}[1]{\ensuremath{\depssym^{*}(#1)}}
 \newcommand{\deps}[2]{\ensuremath{\depssym(#1,\ #2)}}
@@ -614,7 +618,7 @@
 \newcommand\tconst {\primty{ty\_c}}
 \newcommand\tprop  {\primty{Prop}}
 \newcommand\tbot   {\ensuremath{\bot}\xspace}
-\newcommand\tlist[1]{\primty{List}\ {#1}}
+\newcommand\tlist[1]{[#1]}%{\primty{List}\ {#1}}
 
 \def\vv{\ensuremath{\nu}\xspace}
 
