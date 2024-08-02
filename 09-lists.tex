@@ -308,7 +308,7 @@ The purpose of this refinement is to embed the information about
 the specific length of a list at the refinement level.
 %
 Our typing rule for the list destructor 
-$\switch{\sexpr}{\sexpr_n}{\sexpr_c}$ is 
+$\eswitch{\sexpr}{\sexpr_n}{\sexpr_c}$ is 
 best thought of as analogous to our rule $\tIf$
 because it enables path-sensitive reasoning about lists.
 %
@@ -319,7 +319,7 @@ whenever $\stype'$ is well-typed in the same environment,
 and whenver each branch can be given this type
 $\stype'$ in this environment augmented by the knowledge 
 that the about the scrutinee and its length, then the full
-term $\switch{\sexpr}{\sexpr_n}{\sexpr_c}$ can be given type
+term $\eswitch{\sexpr}{\sexpr_n}{\sexpr_c}$ can be given type
 $\stype'$. 
 %
 Note that, per the semantics in \ref{fig:eD}, the cons-branch
