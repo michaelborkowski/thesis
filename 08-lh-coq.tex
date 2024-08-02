@@ -1,0 +1,659 @@
+\chapter{Comparison of Proof Assistants}
+
+\section{Proving Theorems in \lh}
+
+\subsection{SMT Solvers, Arithmetic, and Set Theory} \label{impl:settheory}
+
+The most tedious part in the mechanization of metatheories
+is the establishment of invariants about variables,
+for example uniqueness and freshness.
+%
+\lh offers a built-in, SMT automated support for the
+theory of sets, which simplifies establishing such
+invariants.
+
+\begin{fullversion}
+  \mypara{Set of Free Variables}
+  Our proof mechanization defines the Haskell function
+  \ha{fv} that returns the \ha{Set} of free variable names
+  that appear in its argument.
+  \begin{mcode}
+  measure fv
+  fv :: Expr -> S.Set VName
+  fv (EVar x)    = S.singleton x
+  fv (ELam e)    = fv e
+  fv (EApp e e') = S.union (fv e) (fv e')
+  ... -- other cases
+  \end{mcode}
+  In the above (incomplete) definition, \ha{S}
+  is used to qualify the standard \verb+Data.Set+ Haskell library.
+  \lh embeds the functions of \verb+Data.Set+ to SMT
+  set operators (encoded as a map to booleans).
+  For example, \ha{S.union} is treated as the
+  logical set union operator $\cup$.
+  %
+  Further, we lift \ha{fv} into the refinement
+  logic using the \ha{measure fv} annotation.
+  %
+  % (and in general we use the special comments
+  % \ha{$\{$-@ ... @-$\}$}) to provide \lh specific
+  % annotations.
+  %
+  The measure definition  defines the logical
+  function \ha{fv} in the logic in a way that
+  lets the SMT solver reason about the semantics
+  of \ha{fv} in a \textit{decidable} fashion,
+  as an uninterpreted function refining the
+  type of each \ha{Expr} data constructor
+  \cite{sprite}.
+  %
+  This embedding, combined with the SMT solver's
+  support for the theory of sets, lets \lh prove
+  properties about expressions' free variables
+  ``for free''.
+\end{fullversion}
+
+\mypara{Intrinsic Verification}
+%
+\begin{conference}
+  \lh embeds the functions of the standard
+  \verb+Data.Set+ Haskell library as SMT
+  set operators. Given a Haskell function,
+  \eg the set of free variables in an expression,
+  this embedding, combined with SMT's
+  support for set theory, 
+  lets \lh prove
+  properties about  free variables
+  ``for free''.
+\end{conference}
+%
+For an example of properties for free, consider the function
+\ha{subFV x vx e} which substitutes
+the variable \ha{x} with
+\ha{vx} in \ha{e}.
+%
+The refinement type of \ha{subFV} 
+describes the free variables of the result.
+%
+\begin{mcode}
+  subFV :: x:VName ->vx:{Expr | isVal vx } ->e:Expr
+        ->{e':Expr | fv e' $\subseteq$ (fv vx $\cup$ (fv e \ x)) && (isVal e => isVal e')}
+  subFV x vx (EVar y)    = if x == y then vx else EVar y
+  subFV x vx (ELam   e)  = ELam (subFV x vx e)
+  subFV x vx (EApp e e') = EApp (subFV x vx e) (subFV x vx e')
+  ... -- other cases
+\end{mcode}
+%
+The refinement type % post condition 
+specifies
+that the free variables after substitution is a subset
+of the free variables in the two argument expressions,
+excluding \ha{x}, \ie
+$\mathtt{fv}(\subst{e}{x}{v_x}) \subseteq
+\mathtt{fv}(v_x) \cup (\mathtt{fv}(e) \setminus \{x\})$.
+This specification is proved \emph{intrinsically},
+\ie the definition of \ha{subFV} is the proof
+(no user aid is required) and, importantly,
+the specification is automatically established each time
+the function \ha{subFV} is called 
+without any need for explicit hints.
+%So, the user does not have to provide explicit hints to reason
+%about free variables of substituted expressions.
+%
+The specification of \ha{subFV} above shows another example
+of SMT-based proof simplification. 
+It intrinsically proves that the value property is preserved
+by substitution, 
+using 
+the Haskell boolean
+function \ha{isVal} that defines
+when an expression is a \emph{value}. 
+
+%as stated by the second (implication) conjunct
+%in the output of \ha{subFV}.
+
+
+\begin{fullversion}
+\mypara{Freshness}
+%
+\lh's support for sets simplifies
+defining a \ha{fresh} function,
+which is often challenging\footnote{For example, \coq cannot fold over a set,
+and so a more complex combination of tactics is
+required to generate a fresh name.}.
+%
+\ha{fresh xs} returns a variable that provably
+does not belong to its input \ha{xs}.
+%
+\begin{mcode}
+  fresh :: xs:S.Set VName -> { x:VName | x $\not\in$ xs }
+  fresh xs = n ? above_max n xs'
+    where n    = 1 + maxs xs'
+          xs'  = S.fromList xs
+
+  maxs :: [VName] -> VName
+  maxs []     = 0
+  maxs (x:xs) = if maxs xs < x then x else maxs xs
+
+  above_max :: x:VName -> xs:{[VName]|maxs xs < x} -> {x $\not\in$ elems xs}
+  above_max _ []     = ()
+  above_max x (_:xs) = above_max x xs
+\end{mcode}
+%
+The \ha{fresh} function returns \ha{n}: the maximum element of the set
+increased by one.
+%
+To compute the maximum element we convert the set to a list
+and use the inductively defined \ha{maxs} functions.
+To prove \ha{fresh}'s intrinsic specification we use
+an extrinsic, \ie explicit, lemma \ha{above_max n xs'}
+that, via the \ha{(?)} combinator of type \ha{a ->  b ->  a},
+tells \lh that \ha{n} is not in the set \ha{xs}.
+%
+This extrinsic lemma is itself trivially proved
+by induction on \ha{xs} and SMT automation.
+\end{fullversion}
+
+\begin{fullversion}
+  \subsection{Co-finite Quantification}
+  \label{subsec:implementation:co-finite}
+  \begin{figure}[t!]
+  \begin{mcode}
+-- Standard Existential Rule
+TAbsEx  :: $\gamma$:Env -> t$_x$:Type -> e:Expr -> t:Type
+        -> y:{VName | y $\not\in$ dom $\gamma$ }
+        -> HasTy ((y,t$_x$):$\gamma$) (unbind y e) (unbindT y t)
+        -> HasTy $\gamma$ (ELam e) (TFunc t$_x$ t)
+
+-- Co-finitely Quantified Rule
+TAbs    :: $\gamma$:Env -> t$_x$:Type -> e:Expr -> t:Type -> l:S.Set VName
+        -> (y:{VName|y $\not\in$ l} -> HasTy ((y,t$_x$):$\gamma$) (unbind y e) (unbindT y t))
+        -> HasTy $\gamma$ (ELam e) (TFunc t$_x$ t)
+
+-- Note: All rules also include k$_{\color{gray_ulisses}x}$:Kind -> WfType ${\color{gray_ulisses}\gamma}$ t$_{\color{gray_ulisses}x}$ k$_{\color{gray_ulisses}x}$ elided for clarity.
+  \end{mcode}
+  \caption{Encoding of Co-finitely Quantified Rules.}
+  \label{fig:impl:co-finite}
+  \end{figure}
+
+  %-- Final Rule: Co-finitely Quantified and Explicit Size
+  %TAbs    :: n:Nat -> $\gamma$:Env -> t$_x$:Type -> e:Expr -> t:Type
+  %        -> l:[VName]
+  %        -> ( y:{VName | y $\not\in$ S.fromList l } ->
+  %             { pf:HasTy ((y,t$_x$):$\gamma$) (unbind y e) (unbindT y t)
+  %                 | typSize pf < typSize this } )
+  %        -> HasTy $\gamma$ (ELam e) (TFunc t$_x$ t)
+  %
+
+  To encode the rules that need a fresh free variable name
+  we use the co-finite quantification of~\citet{AydemirCPPW08}, as discussed
+  in~\S~\ref{sec:lang:static}.
+  %
+  \Cref{fig:impl:co-finite} presents
+  this encoding using the \tAbs rule
+  as an example.
+  %
+  The standard abstraction rule
+  (rule \tAbsEx in~\S~\ref{sec:lang:static})
+  requires to provide a concrete fresh name,
+  which is encoded in the second line of
+  \ha{TAbsEx} as the \ha{y:$\{$VName | y $\not\in$ dom $\gamma\}$} argument.
+  %
+  The co-finitely quantified encoding of the rule \ha{TAbs}, instead,
+  states that there exists a specified finite set of excluded names, namely \ha{l},
+  and requires that the sub-derivation holds for any name \ha{y}
+  that does not belong in \ha{l}.
+  %\NV{I really do not understand how l connects with gamma... I think we need to say something about it}
+  %\NV{Also, why encoded as list and then }
+  That is, the premise is turned into a function
+  that, given the name \ha{y}, returns the sub-derivation.
+  This encoding greatly simplifies our mechanization,
+  since the premises are no more tied to concrete names,
+  eliminating the need for renaming lemmas.
+  %
+  We will often take \ha{l} to be the domain
+  of the environment, but the ability to choose \ha{l}
+  gives us the flexibility when constructing derivations
+  to exclude additional names that clash
+  with another part of a proof.
+\end{fullversion}
+%However, this encoding introduces an interesting challenge
+%in the construction of proofs by induction on the derivation
+%tree (\S~\ref{impl:proofs}).
+%
+%\lh cannot conclude that the size of the derivation
+%subtree is independent of $y$, which makes it impossible
+%accept inductive hypotheses on quantified subtrees.
+%This challenge does not appear in the \coq formalization
+%of~\citet{AydemirCPPW08} as \coq generates induction
+%principles that works over co-finitely quantified
+%inductive hypotheses.
+%
+%Our final \ha{TAbs} rule takes the extra ghost
+%size argument \ha{n} and ensures that the size
+%of the conclusion is bounded by \ha{n+1}, if
+%the size of the premise is bounded by \ha{n}.
+%
+%Now, induction on derivation trees is permitted,
+%at the cost of providing an explicit size argument
+%to quantified judgments.
+%
+
+
+\subsection{Inductive Proofs as Recursive Functions}
+\label{impl:proofs}
+
+The majority of our proofs are by induction on derivations.
+These proofs are recursive Haskell functions that
+operate over refined data propositions. 
+%types reifying the respective derivations. 
+\lh ensures the proofs are valid by checking that
+they are inductive (\ie the recursion is well-founded),
+handle all cases (\ie the function is total), and
+establish the desired properties 
+(\ie witnesses the appropriate proposition).
+
+\mypara{Preservation (\Cref{lem:preservationF})}
+relates the \ha{HasTy} data proposition of~\S~\ref{sec:data-props}
+with a \ha{Step} data proposition that encodes~\Cref{fig:opsem}
+and is proved by induction on the type derivation tree.
+Below we present a snippet of the proof, where 
+the subtyping case is by induction
+while the primitive case is impossible: 
+% (\Cref{lem:step-determ}): this does not seem the correct lemma
+% also does not fit :)
+%
+\begin{mcode}
+  preservation :: e:Expr ->t:Type ->e':Expr ->HasTy Empty e t 
+               ->Step e e' ->HasTy Empty e' t
+  preservation _e _t e' (TSub Empty e t' t e_has_t' t'_sub_t) e_step_e'
+    = TSub Empty e' t' t (preservation e t' e' e_has_t' e_step_e') t'_sub_t
+  preservation  e _t e' (TPrim _ _) step
+    = impossible "value" ? lemValStep e e' step -- $e \step e' \Rightarrow \neg (\text{isVal}\ e)$
+  ...
+  impossible :: {v:String | false} ->a
+  lemValStep :: e:Expr ->e':Expr ->Step e e' ->{$\neg$(isVal e)}
+\end{mcode}
+%where e'_has_t' = preservation e t' e' e_has_t' e_step_e'
+%  preservation e _ e' (TAbs {}) step
+%    = impossible "value" ? lemValStep e e' step -- $e \step e' \Rightarrow \neg (\text{isVal}\ e)$
+
+In the \ha{TSub} case we note that \lh knows that
+the argument \ha{_e} is equal to
+the subtyping parameter \ha{e}.
+%
+The termination checker ensures
+the inductive call happens on a smaller
+derivation subtree.
+%
+The \ha{TPrim} case is by contradiction since
+primitives cannot step:
+%
+we proved values cannot step
+in the \ha{lemValStep} lemma, which
+is combined 
+via the \ha{(?)} combinator of type \ha{a ->  b ->  a}
+with the fact that \ha{e} is a value
+to allow the call of the false-precondition \ha{impossible}.
+
+\lh's totality checker ensures
+all cases of \ha{HasTyEv} are covered
+and the termination checker ensures
+the proof is well-founded. %(There are no
+%size bounds on \ha{ProofOf (HasType Empty e' t)}
+%as the preservation lemma does not use any
+%co-finitely quantified rules.)
+
+\begin{fullversion}
+  \mypara{Progress (Theorem~\ref{lem:progressF})}
+  ensures that a well-typed expression is a value
+  \textit{or} there exists an expression to which
+  it steps.
+  %
+  To express this claim we used Haskell's \ha{Either}
+  to encode disjunction that contain pairs (refined to be dependent)
+  to encode existentials.
+  %
+  % progress :: Expr -> Type -> HasType -> Either () (Expr,Step)
+  %
+  \begin{mcode}
+  progress :: e:Expr -> t:Type -> HasTy Empty e t 
+                     -> Either {isVal e}  (e'::Expr, Step e e')
+  progress _ _ (TSub Empty e t' t e_has_t' _) = progress e t' e_has_t'
+  progress _ _ (TPrim _ _)                    = Left ()
+  progress _ _ (TAbs {})                      = Left ()
+  ...
+  \end{mcode}
+  %
+  The proofs of the \ha{TSub} and \ha{TPrim}
+  cases are easily done by, respectively,
+  an inductive call and establishing is-Value.
+  %
+  The more interesting cases require us to case-split
+  on the inductive call in order to get access
+  to the existential witness.
+\end{fullversion}
+
+% Note: condensed into the Coq Section
+%\mypara{Soundness (Theorem~\ref{lem:soundness})}
+%ensures that a well-typed expression will not get stuck,
+%that is, it will either reach a value or keep evaluating.
+%
+%\begin{conference}
+%  To express this claim we used Haskell's \ha{Either}
+%  to encode disjunction that contain pairs (refined to be dependent)
+%  to encode existentials.
+%\end{conference}
+%
+%We reify evaluation sequences with a refined data
+%proposition \ha{Steps e$_0$ e} with a reflexive
+%and a transitive (recursive) constructor.
+%
+%Our soundness proof goes by induction on the
+%evaluation sequence.
+%
+%\begin{mcode}
+%  soundness :: e$_0$:Expr -> t:Type -> e:Expr -> HasTy Empty e$_0$ t -> Steps e$_0$ e
+%                          -> Either {isVal e}  (e$_i$::Expr, Step e e$_i$)
+%  soundness _e$_0$ t _e e$_0$_has_t e$_0$_evals_e = case e$_0$_evals_e of
+%     Refl e$_0$ -> progress e$_0$ t e$_0$_has_t       -- $\cmt{e_0 = e}$
+%     AddStep e$_0$ e$_1$ e$_0$_step_e$_1$ e e$_1$_eval_e ->  -- $\cmt{e_0 \step \evalsTo{e_1}{e}}$
+%       soundness e$_1$ t e (preservation e$_0$ t e$_0$_has_t e$_1$ e$_0$_step_e$_1$) e$_1$_eval_e
+%\end{mcode}
+%
+%The reflexive case is proved by \ha{progress}.
+%In the inductive case the evaluation
+%sequence is $e_0 \step \evalsTo{e_1}{e}$
+%and the proof goes by induction,
+%using preservation to ensure that
+%$e_1$ is typed.
+
+}
+
+\section{\coq \vs \lh}
+\coq has a tiny trusted code base (TCB) 
+and strong foundational mechanized soundness 
+guarantees \cite{coqcoqcorrect}.
+%
+In contrast, \lh trusts the Haskell compiler (GHC), 
+the SMT solver (Z3), and its constraint generation rules 
+which have not been formalized. 
+%
+This work, \sysrf, serves precisely that purpose: by
+formalizing and mechanizing a significant subset of \lh, 
+leaving out literals, casts, and data types. 
+%
+As far as the user experience is concerned, 
+\coq metatheoretical developments 
+are much faster to check, which was 
+expected since \lh comes with expensive 
+inference, and can be aided by relevant libraries. 
+The two tools come with different kinds of automation: 
+tactics \vs SMT, which we found to be useful in \emph{complementary} 
+parts of the proofs, pointing the way to possible improvements
+for both verification styles.
+Finally, \lh facilitates reasoning over 
+mutually defined and partial functions. 
+%
+%Next, we expand upon the last two points
+%with snippets from our mechanizations. 
+%
+\begin{fullversion}
+We begin by looking at aspects of mechanized metatheory in \coq
+that are easier or more feasible than in \lh, and then we
+turn to aspects that are easier in \lh.
+\end{fullversion}
+
+\mypara{Negative Occurrences and \coq's Equations}\NV{NEW CHECK}
+Our original \lh mechanization defined  
+denotations as refined data propositions
+and proved denotational soundness. 
+Though, we realized that the definition 
+of the function type denotation
+has a negative occurrence and permitting negative occurrences
+can, in general, lead to unsoundness~\cite{CP90}. 
+%
+Our mechanization is the first big-scale user of 
+\lh's data propositions thus it was not surprising that it revealed 
+this potential unsoundness.
+%
+To remove this source of unsoundness in \lh, 
+we implemented a \coq-style positivity checker
+that unsurprisingly rejected the type denotation definitions. 
+%
+A similar challenge appears in the proof of strong normalization 
+of the simply-type lambda calculus that because of negative occurrences
+cannot use inductive propositions \cite{Pierce:SF2}.
+There, the solution is to use a recursive function \ha{expr -> type -> Prop}
+because a definition doesn't need to be computable.
+%
+In our \coq mechanization, we followed a similar solution, 
+but since our definition was not structurally recursive and 
+was needed for the proofs, we used 
+the full power of \coq's Equations~\cite{10.1145/3341690} to define 
+the type denotations. 
+%
+Unfortunately, a similar approach cannot currently carry over to \lh
+because all Haskell functions must be computable and all
+\lh annotations must be decidable. Therefore, quantifiers
+are neither allowed on the right-hand side of Haskell
+definitions nor in the refinements. % of Liquid types.
+
+
+\mypara{Tactics and Automation}
+\coq's tactics and automation often permit shorter
+proofs as lemmas and constructors can be used with the
+\ha{apply} tactic without writing out all arguments. 
+%
+For example, in \lh 
+safety (thm.~\ref{lem:soundness})
+is encoded using 
+Haskell's \ha{Either}
+for disjunction
+and dependent pairs for existentials.
+%
+(\ha{Steps} is defined, using data propositions, as the 
+% reflexive and transitive 
+closure of \ha{Step}.)
+%
+\begin{mcode}
+  safety :: e$_0$:Expr -> t:Type -> e:Expr -> HasTy Empty e$_0$ t 
+         -> Steps e$_0$ e -> Either {isVal e}  (e$_i$::Expr, Step e e$_i$)
+  safety _e$_0$ t _e e$_0$_has_t e$_0$_evals_e = case e$_0$_evals_e of
+     Refl e$_0$ -> progress e$_0$ t e$_0$_has_t       -- $\cmt{e_0 = e}$
+     AddStep e$_0$ e$_1$ e$_0$_step_e$_1$ e e$_1$_eval_e ->  -- $\cmt{e_0 \step \evalsTo{e_1}{e}}$
+       safety e$_1$ t e (preservation e$_0$ t e$_0$_has_t e$_1$ e$_0$_step_e$_1$) e$_1$_eval_e
+\end{mcode}
+%
+%\begin{fullversion}
+    The reflexive case is proved by \ha{progress}.
+    In the inductive case the evaluation
+    sequence is $e_0 \step \evalsTo{e_1}{e}$
+    and the proof goes by induction,
+    using preservation to ensure that
+    $e_1$ is typed.  
+%\end{fullversion}
+%
+In \coq safety is proved 
+without any of the three fully applied calls above:
+%
+\begin{mcode}
+  Theorem safety : forall (e$_0$ e:expr) (t:type),
+     Steps e$_0$ e -> HasTy Empty e$_0$ t -> isVal e \/ exists e$_i$, Steps e e$_i$.
+  Proof. intros; induction H.
+    - (* Refl *) apply progress with t; assumption.
+    - (* Add  *) apply IHSteps; apply preservation with e; assumption. Qed.
+\end{mcode}
+%
+Automation tactics could make this proof even shorter,
+but we retain the essential proof structure.
+
+\mypara{Mutual Recursion}
+\lh makes it easy to define and work with mutually
+recursive data types, 
+such as our typing and subtyping judgments,
+and to prove mutually inductive lemmas.
+%
+\begin{fullversion}
+    Similarly, our 
+    expressions, types, and predicates are
+    three mutually recursive data types.
+\end{fullversion}
+%
+Mutually recursive types are not a natural fit for \coq: 
+the automatically generated induction principles do not work,
+so we need to use the \ha{Scheme} keyword to generate  
+suitable principles.
+%
+Theorems involving these types cannot be
+broken up into separate lemmas for each type 
+involved. 
+%Rather, a unified approach must
+%be taken which leads to theorems that are difficult to use
+%directly in the \ha{rewrite} tactic.
+%
+Rather, one combined statement must be given,
+which is difficult to use %directly 
+in the \ha{rewrite} tactic.
+
+
+Another weakness of \coq is that all 
+information about the hypothesis is lost during the induction
+tactic, so the normal structural \ha{induction} tactic only works when
+a judgment contains no information, \ie the data constructor
+is instantiated solely with universally quantified
+variables. 
+%
+For instance, in the proof of the weakening~\Cref{lem:weakening},
+to do structural induction on %a judgment like 
+\ha{HasTy (concat g g')  e t}
+we must introduce a universally quantified variable \ha{g0}
+and strengthen the theorem with the hypothesis
+\ha{g0 = concat g g'}.
+%
+While the standard library contains an ``experimental'' tactic 
+\ha{dependent induction}, we also need to work with 
+the special mutual induction principles that we generate for
+our types, so we have to directly instantiate the principle
+with a strengthened, complex hypothesis%. 
+%\begin{comment}
+and state the lemma as:
+\begin{mcode}
+  Lemma lem_weaken_typ' : ( forall (g0 : env) (e : expr) (t : type),
+    HasTy g0 e t ->( forall (g g' : env) (x : vname) (t_x : type),
+        g0 = concatE g g' ->unique g ->unique g' ->
+        (binds g) $\cap $ (binds g') = empty ->~ (in_env x g) ->~ (in_env x g')
+        ->HasTy (concatE (Cons x t_x g) g') e t ) ) /\ (
+  forall (g0 : env) (t : type) (t' : type),
+    Subtype g0 t t' ->( forall (g g' : env) (x : vname) (t_x : type),
+        g0 = concatE g g' ->unique g ->unique g' -> 
+        (binds g) $\cap $ (binds g') = empty ->~ (in_env x g) ->~ (in_env x g')
+        ->Subtype (concatE (Cons x t_x g) g') t t') ).
+\end{mcode}
+%Proof. apply ( judgments_mutind 
+%  (fun (g0 : env) (e : expr) (t : type) (p_e_t : Hastype g0 e t) => 
+%    forall (g g':env) (x:vname) (t_x:type),
+%      g0 = concatE g g' -> unique g -> unique g'
+%                         -> intersect (binds g) (binds g') = empty
+%                         -> ~ (in_env x g) -> ~ (in_env x g') 
+%                         -> Hastype (concatE (Cons x t_x g) g') e t )
+%  (fun (g0 : env) (t : type) (t' : type) (p_t_t' : Subtype g0 t t') => 
+%    forall (g g':env) (x:vname) (t_x:type),
+%      g0 = concatE g g' -> unique g -> unique g'
+%                         -> intersect (binds g) (binds g') = empty
+%                         -> ~ (in_env x g) -> ~ (in_env x g') 
+%                         -> Subtype (concatE (Cons x t_x g) g') t t')  
+%  ); ...
+%
+%\end{comment}
+By contrast, in \lh we can state two separate mutually recursive
+lemma functions for weakening: one for typing
+and one for subtyping.
+%
+Then we may call either lemma in their own proofs on any
+smaller instance of the typing (resp. subtyping) judgment.
+%
+%\begin{fullversion}
+In practice, developments in \coq sidestep some of these issues
+by collapsing the language of terms, types, \etc 
+into a single inductive data type. 
+%
+This approach has the advantage of reducing the number of substitution
+operations, but allows highly ungrammatical
+combinations like \ha{App Bool False} into our syntax. 
+%
+We could still use this approach 
+combined with a pre-term encoding common in \coq developments,  
+but we preferred to keep a closer comparison to the \lh mechanization.
+%The solution to this is to define these expressions to be pre-terms and then
+%to define terms and types to be an inductive proposition consisting of a 
+%pre-term and a proof of being a well-formed term or type. 
+% 
+%We avoided this common approach in order to keep a closer comparison
+%to the \lh mechanization.
+%\end{fullversion}
+
+%Sometimes, a lemma cannot be proven 
+%For example, the Transitivity of Subtyping cannot be proven 
+%by structural induction on the two subtyping judgments because
+%in one case we need to use the Substitution Lemma before
+%invoking the inductive hypothesis.
+%Instead, it must proceed by induction on the combined size of
+%the three types involved. In \coq, this requires defining and 
+%arguing about an ad-hoc measure and encoding strong induction
+%over \ha{Nat} into the statement of the Transitivity Lemma itself.
+
+\mypara{Partial Functions} 
+\lh facilitates the definition of partial Haskell functions 
+and proves totality with respect to the refined types,
+usually automatically, without 
+having to reason about impossible cases in mechanized proofs.
+%
+For instance, our syntax does not contain an explicit 
+\ha{error} value, so we only want the function
+$\delta(c,\sval)$ to be defined where $\app{c}{\sval}$ can 
+step in our semantics.
+%
+This is straightforward in \lh: we define a predicate 
+\ha{isCompat :: Prim ->Value ->Bool} and refine the input
+types of $\delta$ to satisfy \ha{isCompat}.
+%
+%\begin{fullversion}
+% NV: isCompat' is not even used in the text jeje
+%\begin{mcode}
+%  Definition isCompat' (c : prim) (e : expr) : bool :=
+%    match c, e with | And , (Bc _)      => true
+%                    | Or  , (Bc _)      => true
+%                    ...
+%                    | _        , _      => false end.
+%\end{mcode}
+%
+%\end{fullversion}
+In \coq a more roundabout approach is needed: we have to define 
+\ha{isCompat} as an inductive type and include this object as
+an explicit argument to our $\delta$ function:
+%\begin{fullversion}
+%
+\begin{mcode}
+  Inductive isCompat : prim -> expr -> Set : =   
+    | isCpt_And  : forall b, isCompat And (Bc b)
+    | isCpt_Or   : forall b, isCompat Or  (Bc b) 
+    ...
+\end{mcode}
+%
+%\end{fullversion}
+However, this makes it harder to prove the determinism of our
+semantics due to the dependence on the proof object. 
+%
+One solution would be to define a partial version of 
+$\delta$ with type
+\ha{Prim ->Expr ->option Expr} and prove the two functions
+always agree regardless of proof object, \eg using \emph{subset types};
+but since  each value
+comes wrapped with a term-level proof object,
+agreement proofs would require a \emph{Proof Irrelevance} axiom.
+%, and 
+%as reasoning about equality between objects of a 
+%subset type is not possible in general sans 
+%a \emph{Proof Irrelevance} axiom \cite{Vazou17}. 
+%
