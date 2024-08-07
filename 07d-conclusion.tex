@@ -1,11 +1,16 @@
 \section{Conclusions \& Future Work}
   
 We presented and formalized, for the first time, the soundness of
-\sysrf, a refinement calculus with semantic subtyping, existential 
+\sysrf and \sysrfd : the former is 
+a refinement calculus with semantic subtyping, existential 
 types, and parametric polymorphism, which are critical for practical 
 refinement typing. 
 %
-Our metatheory is mechanized in both \coq and \lh, the latter
+The latter adds basic concrete data types and measures: lists and
+a built-in length function.
+%
+Our metatheory is mechanized in both \coq and (for the core $\sysrf$) 
+\lh, the latter
 using the novel feature of refined data propositions to reify 
 derivations as (refined) Haskell datatypes, using SMT
 to automate invariants about variables.
@@ -32,7 +37,7 @@ refinement typing and show that such a proof can be
 % comparison with a \coq mechanization.
 %
 % \newtext{
-Looking ahead, 
+\mypara{Metatheory} Looking ahead, 
 we envision two lines
 of work on mechanizing metatheory \emph{of}
 and \emph{with} refinement types.
@@ -43,9 +48,13 @@ and \emph{with} refinement types.
 %
 \sysrf covers a crucial but small
 fragment of the features of modern refinement
-type checkers. 
-The immediate next step is to extend the language 
-to include literals, casts, and data types, 
+type checkers.
+%
+Building on this, \sysrfd takes the first step 
+towards data types.
+% 
+The next step is to extend the language 
+to include literals, casts, and arbitrary user-specified data types, 
 thus covering \textit{all} GHC's core calculus. 
 Next, \sysrf can be extended to more sophisticated 
 features of refinement types, such as 
@@ -92,3 +101,18 @@ important directions for future work.
 %% Denotations ~ Implication via negative types
 %% Datatypes + Polymorphism
 %% Ergonomics
+
+\mypara{Algorithmic type checking} The key motivation behind
+the use of liquid types in practical systems is the ability to 
+typecheck programs decidably.
+%
+When refinements are restricted to a decidable logic, then 
+verification can be done by an SMT sovler
+without reliance on brittle heuristics.
+%
+As a next step, we aim to show that our typing system can be
+equivalently cast in the form of a bi-modal or ``bidirectional''
+algorithm. 
+%
+Combined with restrictions of the syntax of refinements, this would 
+make typechecking for a significant subset of \sysrfd programs decidable.

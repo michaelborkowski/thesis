@@ -161,10 +161,11 @@ rules for typing in Figure \ref{fig:ft}.
       %
           \inferrule% *[Right=\tTApp]
           {
-            \isWFFT{\tcenv}{\sftype}{\skind}\\\\
+            \isWFFT{\tcenv}{\forgetreft{\stype}}{\skind}\\\\
             \hastype{\tcenv}{\sexpr}{\polytype{\al}{\skind}{\sftype'}}
           }
-          {\hastype{\tcenv}{\tyapp{\sexpr}{\sftype}}{\subst{\sftype'}{\al}{\sftype}}}
+          {\hastype{\tcenv}{\tyapp{\sexpr}{\stype}}
+              {\subst{\sftype'}{\al}{\forgetreft{\stype}}}}
           {\fTApp}
       \quad    
       %
@@ -225,7 +226,7 @@ for \sysf types and $\stype$ for the $\sysrf$ types that appear
 in user annotations and in type applications. 
 
 \begin{theorem} (Type Safety of \sysf) 
-  \label{lem:soundnessF} (\cref{app:lem:soundnessF} in App. \ref{ch:proofsF})
+  \label{lem:soundnessF} %(\cref{app:lem:soundnessF} in App. \ref{ch:proofsF})
   \begin{enumerate}
       \item (Type Safety)
       If $\hastype{\varnothing}{\sexpr}{\sftype}$ and $\evalsTo{\sexpr}{\sexpr'}$,
@@ -237,13 +238,42 @@ in user annotations and in type applications.
       then $\sexpr' \not = \eerr$.
   \end{enumerate}
   \end{theorem}
+  %%
+\begin{proof}
+  (1) 
+  We proceed by induction on the number of steps in 
+  $\evalsTo{\sexpr}{\sexpr'}$.
+  %
+  There are two cases for $\evalsTo{\sexpr}{\sexpr'}$: 
+  either $\sexpr=\sexpr'$ 
+  or there exists a term $\sexpr_1$ 
+  such that $\sexpr \step \evalsTo{\sexpr_1}{\sexpr'}$.
+  %
+  In the former case we conclude immediately 
+  by the Progress Lemma (\ref{lem:progressFF} below).
+  %
+  In the latter case, $\hasftype{\varnothing}{\sexpr_1}{\sftype}$
+  by the Preservation Lemma (\ref{lem:preservationFF}). 
+  %
+  Then by the inductive hypothesis
+  applied to the reduction sequence $\evalsTo{\sexpr_1}{\sexpr'}$, 
+  we conclude that either $\sexpr'$ is a value 
+  or $\sexpr' \step \sexpr''$ for some $\sexpr''$ as desired. 
+
+  (2) The second statement follows immediately from the first:
+  we know that either $\sexpr'$ is a value and cannot be $\eerr$
+  or $\sexpr'$ can take a step. But no rule in Figure \ref{fig:e}
+  can be applied to reduce $\eerr$.
+\end{proof}
+%%
 % %
-We prove type safety by induction on the 
+As mentioned in the proof above,
+we prove type safety by induction on the 
 length of the sequence of steps comprising 
 $\evalsTo{\sexpr}{\sexpr'}$, using the 
 preservation and progress lemmas.
 
-\mypara{Progress} \label{sec:sysf:progressF}
+\subsection{Progress} \label{sec:sysf:progressF}
 %
 The progress lemma says a well-typed term is a value 
 or steps to some other term.
@@ -253,9 +283,120 @@ If $\hasftype{\varnothing}{\sexpr}{\sftype}$,
 then $\sexpr$ is a value or $\sexpr \step \sexpr'$ for some $\sexpr'$.
 \end{lemma}
 
+\begin{proof} 
+  We proceed by induction of the structure of 
+  $\hasftype{\varnothing}{\sexpr}{\sftype}$. In the cases of rule
+  \fPrim, \fVar, \fAbs, or \fTAbs, $\sexpr$ is a value.
+  \begin{itemize}
+  %%
+  \pfcase{\fApp}: We have 
+  $\hasftype{\varnothing}{\sexpr}{\sftype}$ where
+  $\sexpr \equiv \app{\sexpr_1}{\sexpr_2}$. 
+  Inverting, we have that there exists some type $\sftype_2$
+  such that $\hasftype{\varnothing}{\sexpr_1}{\funcftype{\sftype_2}{\sftype}}$
+  and $\hasftype{\varnothing}{\sexpr_2}{\sftype_2}$.
+  We split on five possible cases for 
+  the structure of $\sexpr_1$ and $\sexpr_2$. 
+  %
+  First, suppose $\sexpr_1 \equiv \vabs{x}{\sexpr_0}$ and $\sexpr_2$ is 
+  a value. Then by rule \eAppAbs, 
+  $e \equiv \app{\vabs{x}{\sexpr_0}}{\sexpr_2} \step \subst{\sexpr_0}{x}{\sexpr_2}$.
+  %
+  Second, suppose $\sexpr_1 \equiv \vabs{x}{\sexpr_0}$ and $\sexpr_2$
+  is not a value. Then by the inductive hypothesis, there exists a term
+  $\sexpr'_2$ such that $\sexpr_2 \step \sexpr'_2$. Then by rule \eAppV
+  $e \equiv \app{\vabs{x}{\sexpr_0}}{\sexpr_2} \step \app{\vabs{x}{\sexpr_0}}{\sexpr'_2}$.
+  %
+  Third, suppose $\sexpr_1 \equiv \sconst$, a built in primitive 
+  and $\sexpr_2$ is a value. Then by rule \ePrim, 
+  $e \equiv \app{\sconst}{\sexpr_2} \step \delta(\sconst,\sexpr_2)$,
+  which is well-defined by the Primitives Lemma (\ref{lem:primitivesF}).
+  %
+  Fourth, suppose $\sexpr_1 \equiv \sconst$ and $\sexpr_2$
+  is not a value. Then by the inductive hypothesis, there exists a term
+  $\sexpr'_2$ such that $\sexpr_2 \step \sexpr'_2$. Then by rule \eAppV
+  $e \equiv \app{\sconst}{\sexpr_2} \step \app{\sconst}{\sexpr'_2}$.
+  %
+  Finally, by the Canonical Forms Lemma (\ref{lem:canonicalF}),
+  $\sexpr_1$ cannot be any other
+  value, so it must not be a value. Then by the inductive hypothesis,
+  there is a term $\sexpr'_1$ such that $\sexpr_1 \step \sexpr'_1$. 
+  Then by rule \eApp,
+  $e \equiv \app{\sexpr_1}{\sexpr_2} \step \app{\sexpr'_1}{\sexpr_2}$.
+  %%
+  \pfcase{\fTApp}: We have 
+  $\hasftype{\varnothing}{\sexpr}{\sftype}$ where
+  $\sexpr \equiv \tyapp{\sexpr_1}{\stype}$ and
+  $\sftype \equiv \subst{\sigma}{\tvar}{\forgetreft{\stype}}$. 
+  Inverting, we have that 
+  $\hasftype{\varnothing}{\sexpr_1}{\polytype{\tvar}{\skind}{\sigma}}$.
+  We split on three cases for the structure of $\sexpr_1$.
+  %
+  First, suppose $\sexpr_1 \equiv \tabs{\tvar'}{\skind'}{\sexpr_0}$.
+  Then by rule \eTAppAbs, 
+  $\sexpr \equiv \tyapp{\tabs{\tvar'}{\skind'}{\sexpr_0}}{\stype} 
+  \step \subst{\sexpr_0}{\tvar'}{\stype}$.
+  %
+  Second, suppose $\sexpr_1 \equiv \sconst$, a built in primitive.
+  Then by rule \eTPrim, 
+  $\sexpr \equiv  \tyapp{\sconst}{\stype} \step \delta_T(\sconst,\forgetreft{\stype})$,
+  which is well-defined by the Primitives Lemma (\ref{lem:primitivesF}).
+  %
+  Finally, by the Canonical Forms Lemma (\ref{canonicalF}), 
+  $\sexpr_1$ cannot be any other
+  form of value, so it must not be a value. 
+  Then by the inductive hypothesis,
+  there is a term $\sexpr'_1$ such that $\sexpr_1 \step \sexpr'_1$. 
+  Then by rule \eTApp
+  $\sexpr \equiv \tyapp{\sexpr_1}{\stype} \step \tyapp{\sexpr'_1}{\stype}$.
+  %%
+  \pfcase{\fLet}: We have 
+  $\hasftype{\varnothing}{\sexpr}{\sftype}$ where
+  $\sexpr \equiv \eletin{x}{\sexpr_1}{\sexpr_2}$. Inverting,
+  we have that $\hasftype{\varnothing}{\sexpr_1}{\sftype_1}$
+  for some type $\sftype_1$. 
+  By the inductive hypothesis, either $\sexpr_1$ is a value
+  or there is a term $\sexpr'_1$ such that $\sexpr_1 \step \sexpr'_1$.
+  In the former case, rule \eLetV gives us
+  $e \equiv \eletin{x}{\sexpr_1}{\sexpr_2} \step \subst{\sexpr_2}{x}{\sexpr_1}$.
+  In the latter case, by rule \eLet, 
+  $e \equiv \eletin{x}{\sexpr_1}{\sexpr_2} \step \eletin{x}{\sexpr'_1}{\sexpr_2}$.
+  %%
+  \pfcase{\fAnn}: We have 
+  $\hasftype{\varnothing}{\sexpr}{\sftype}$ where
+  $\sexpr \equiv \tyann{\sexpr_1}{\stype}$. Inverting,
+  we have the $\hasftype{\varnothing}{\sexpr_1}{\sftype}$ and
+  $\sftype = \forgetreft{\stype}$. 
+  By the inductive hypothesis, either $\sexpr_1$ is a value
+  or there is a term $\sexpr'_1$ such that $\sexpr_1 \step \sexpr'_1$.
+  In the former case, by rule \eAnnV, 
+  $e \equiv \tyann{\sexpr_1}{\stype} \step \sexpr_1$.
+  In the latter case, rule \eAnn gives us 
+  $e \equiv \tyann{\sexpr_1}{\stype} step \tyann{\sexpr'_1}{\stype}$.
+   %%
+   \pfcase{\fIf}: We have 
+   $\hasftype{\varnothing}{\sexpr}{\sftype}$ where
+   $\sexpr \equiv \eif{\sexpr}{\sexpr_1}{\sexpr_2}$. Inverting,
+   we have that $\hasftype{\varnothing}{\sexpr}{\tbool}$.
+   By the inductive hypothesis, either $\sexpr$ is a value
+   or there is a term $\sexpr'$ such that $\sexpr \step \sexpr'$.
+   In the former case, by the Canonical Forms Lemma (\ref{lem:canonicalF}),
+   we have that $\sexpr = \ttrue$ or $\sexpr = \tfalse$, and so
+   either 
+   $e \equiv \eif{\ttrue}{\sexpr_1}{\sexpr_2} \step \sexpr_1$
+   by rule \eIfT or (respectively)
+   $e \equiv \eif{\tfalse}{\sexpr_1}{\sexpr_2} \step \sexpr_2$
+   by rule \eIfF.
+   %
+   In the latter case, by rule \eIf, 
+   $e \equiv \eif{\sexpr}{\sexpr_1}{\sexpr_2} \step \eif{\sexpr'}{\sexpr_1}{\sexpr_2}$.
+  %%
+  \end{itemize}
+  \end{proof}
+
 \begin{fullversion}
 %
-Proof of progress requires a \emph{Canonical Forms} 
+The proof of progress given above requires a \emph{Canonical Forms} 
 lemma (\cref{lem:canonicalF}) which describes the 
 shape of well-typed values and some key properties 
 about the built-in \emph{Primitives} (\cref{lem:primitivesF}).
@@ -266,12 +407,6 @@ type of well-typed terms and its subterms. For $\sysf$,
 unlike $\sysrf$, this lemma
 is trivial because the typing relation is syntax-directed.
 
-%\mypara{Canonical Forms}
-%
-%We use the canonical forms lemma 
-%in both Progress and Preservation to case 
-%split on the possible forms for closed 
-%value terms with a given type.
 
 \begin{lemma}\label{lem:canonicalF} (Canonical Forms) 
 \begin{enumerate}
@@ -289,6 +424,22 @@ is trivial because the typing relation is syntax-directed.
         then $\sftype = \tbool$ or $\sftype = \tint$.
 \end{enumerate}
 \end{lemma}
+%%
+\begin{proof}
+    Parts (1) - (4) are easily deduced from the \sysf typing rules 
+    in Figure \ref{fig:t} and the definition of $ty(c)$. 
+    Part (5) is clear from the well-formedness rules in Figure \ref{fig:wf}.
+\end{proof}
+
+We note that 
+Lemma \ref{lem:canonicalF-a} is sufficient for our $\sysrf$ metatheory.
+Our syntactic typing judgments in $\sysrf$ respect those of $\sysf$.
+Specifically, if $\hastype{\tcenv}{\sexpr}{\stype}$ and 
+$\isWellFormedE{\tcenv}$, then
+$\hasftype{\forgetreft{\tcenv}}{\sexpr}{\forgetreft{\stype}}$.
+Therefore, we do not have to state and 
+prove a separate Canonical Forms Lemma for $\sysrf$.
+%%
 
 \begin{lemma}\label{lem:inversionF} (Inversion of Typing) 
     \begin{enumerate}% [leftmargin=*]
@@ -326,6 +477,19 @@ is trivial because the typing relation is syntax-directed.
             $\hasftype{\tcenv}{e_2}{\sftype}$.
     \end{enumerate}
 \end{lemma}
+%%
+\begin{proof}
+This is clear from the definition of the typing rules for $\sysf$. Each premise
+can match only one rule because the $\sysf$ rules are syntax directed.
+\end{proof}
+%%
+The Inversion of Typing Lemma does not hold in $\sysrf$ due to the subtyping
+relation. For instance 
+$\hastype{\bind{x}{\breft{\tint}{\vv}{\vv = 5}}}{x}{\tint}$ but
+$\notmem{\bind{x}{\tint}}{\bind{x}{\breft{\tint}{\vv}{\vv = 5}}}$.
+In Lemma \ref{lem:inversion} we state and prove an analogous result 
+for $\sysrf$ in the two cases needed to prove progress and preservation.
+%% % TODO ^^^ recheck that this lemma is still there!
 
 %\mypara{Primitives}
 %
@@ -352,16 +516,37 @@ For each built-in primitive $c$,
     $\hasftype{\varnothing}{\delta_T(\sconst,\sftype_\al)}{\subst{\sftype}{\al}{\sftype_\al}}$.
     \end{enumerate}
 \end{lemma}
+%%
+\begin{proof}
+  \begin{enumerate}
+      \item First consider $\sconst \in \{\wedge, \vee, \neg\}$. 
+          Then $\forgetreft{\ty{\sconst}} = \funcftype{\tbool}{\funcftype{\tbool}{\tbool}}$.
+          Then by Lemma \ref{lem:canonicalF}, $\hasftype{\varnothing}{\sval}{\tbool}$
+          gives us that $\sval = \ttrue$ or $\sval = \tfalse$.
+          For each possibility for $\sconst$ and $\sval$, we can build a judgment 
+          that $\hasftype{\varnothing}{\delta(\sconst,\sval)}{\funcftype{\tbool}{\tbool}}$.
+          Similarly, if $\sconst = \neg$ 
+          then $\forgetreft{\ty{\sconst}} = \funcftype{\tbool}{\tbool}$ and 
+          $\delta(\neg,\sval) \in \{\ttrue,\tfalse\}$ can be typed at $\tbool$.
+          The analysis for the other monomorphic primitives is entirely similar.
+      \item Here $\sconst$ is the polymorphic $=$ and 
+          $\forgetreft{\ty{\sconst}} = \polytype{\tvar}{\skbase}{\funcftype{\al}{\funcftype{\al}{\tbool}}}$. By the Canonical Forms Lemma, 
+          $\sftype = \tbool$ or $\sftype = \tint$. In the former case,
+          $\delta_T(\sconst,\tbool) = \leftrightarrow$, which we can type at 
+          $\funcftype{\tbool}{\funcftype{\tbool}{\tbool}} =\subst{\forgetreft{\ty{\sconst}}}{\tvar}{\tbool}$. The case of $\tint$ is entirely similar
+          because $\delta_T(\sconst,\tint)$ is the monomorphic integer equality.
+  \end{enumerate}
+  \end{proof}
 
 %\NV{Michael check the below}
-Lemmas~\ref{lem:canonicalF} and~\ref{lem:inversionF} are proved without
-induction by inspection of the derivation tree, 
-while lemma~\ref{lem:primitivesF} relies on 
-the Primitives Requirement~\ref{lem:prim-typing}. 
+%Lemmas~\ref{lem:canonicalF} and~\ref{lem:inversionF} are proved without
+%induction by inspection of the derivation tree, 
+%while lemma~\ref{lem:primitivesF} relies on 
+%the Primitives Requirement~\ref{lem:prim-typing}. 
 
 \end{fullversion}
 
-\mypara{Preservation} \label{sec:sysf:preservationF}
+\subsection{Preservation} \label{sec:sysf:preservationF}
 %
 The preservation lemma states that $\sysf$ typing is preserved
 by evaluation.
@@ -370,24 +555,193 @@ by evaluation.
 If $\hasftype{\varnothing}{\sexpr}{\sftype}$ and $\sexpr \step \sexpr'$, 
 then $\hasftype{\varnothing}{\sexpr'}{\sftype}$.
 \end{lemma}    
+%%
+\begin{proof} 
+  We proceed by induction of the structure of 
+  $\hasftype{\varnothing}{\sexpr}{\sftype}$. The cases of rules
+  \fPrim, \fVar, \fAbs, or \fTAbs cannot occur because $\sexpr$ is a value
+  and no value can take a step in our semantics.
+  %%
+  The interesting cases are for \fApp and \fTApp.
+  %
+  For applications of primitives, preservation 
+  requires the Primitives~\Cref{lem:primitivesF},
+  while the general case needs a Substitution~\Cref{lem:substitutionF}.
+  %
+  We now give the full details of the other five cases:
 
-The proof is by structural induction on the 
-derivation of the typing judgment. 
-We use the determinism of the operational 
-semantics (Lemma~\ref{lem:step-determ}) and 
-the canonical forms lemma to case split 
-on $\sexpr$ to determine $\sexpr'$.
+  \begin{itemize}
+  %%
+  \pfcase{\fApp}: We have 
+  $\hasftype{\varnothing}{\sexpr}{\sftype}$ where
+  $\sexpr \equiv \app{\sexpr_1}{\sexpr_2}$. 
+  Inverting, we have that there exists some type $\sftype_2$
+  such that $\hasftype{\varnothing}{\sexpr_1}{\funcftype{\sftype_2}{\sftype}}$
+  and $\hasftype{\varnothing}{\sexpr_2}{\sftype_2}$.
+  We split on five possible cases for 
+  the structure of $\sexpr_1$ and $\sexpr_2$. 
+  %
+  First, suppose $\sexpr_1 \equiv \vabs{x}{\sexpr_0}$ and $\sexpr_2$ is 
+  a value. Then by rule \eAppAbs and the determinism of our semantics, 
+  $e' \equiv \subst{\sexpr_0}{x}{\sexpr_2}$.
+  By the Inversion of Typing (\ref{lem:inversionF}), for some $y$ we have
+  $\hasftype{\bind{y}{\sftype_2}}{\subst{\sexpr_0}{x}{y}}{\sftype}$.
+  By the Substitution Lemma (\ref{lem:substitutionFF}), 
+  substituting $\sexpr_2$ through for $y$
+  gives us $\hasftype{\varnothing}{\subst{\sexpr_0}{x}{\sexpr_2}}{\sftype}$
+  as desired because $\subst{\subst{\sexpr_0}{x}{y}}{y}{\sexpr_2} = \subst{\sexpr_0}{x}{\sexpr_2}$.
+  %
+  Second, suppose $\sexpr_1 \equiv \vabs{x}{\sexpr_0}$ and $\sexpr_2$
+  is not a value. Then by the progress lemma (\ref{lem:progressFF}), 
+  there exists a term
+  $\sexpr'_2$ such that $\sexpr_2 \step \sexpr'_2$. Then by rule \eAppV
+  and the determinism of our semantics,
+  $e' \equiv \app{\vabs{x}{\sexpr_0}}{\sexpr'_2}$. 
+  Now, by the inductive hypothesis, 
+  $\hasftype{\varnothing}{\sexpr'_2}{\sftype_2}$.
+  Applying rule \fApp, 
+  $\hasftype{\varnothing}{\app{\sexpr_1}{\sexpr'_2}}{\sftype}$
+  as desired.
+  %
+  Third, suppose $\sexpr_1 \equiv \sconst$, a built in primitive, 
+  and $\sexpr_2$ is a value. Then by rule \ePrim
+  and the determinism of the semantics, 
+  $e' \equiv \delta(\sconst,\sexpr_2)$.
+  By the primitives lemma, 
+  $\hasftype{\varnothing}{\delta(\sconst,\sexpr_2)}{\sftype}$ as desired.
+  %
+  Fourth, suppose $\sexpr_1 \equiv \sconst$ and $\sexpr_2$
+  is not a value. Then we argue in the same manner as the second case.
+  %
+  Finally, by the canonical forms lemma, $\sexpr_1$ cannot be any other
+  value, so it must not be a value. Then by the progress lemma,
+  there is a term $\sexpr'_1$ such that $\sexpr_1 \step \sexpr'_1$. 
+  Then by rule \eApp and the determinism of the semantics,
+  $e' \equiv \app{\sexpr'_1}{\sexpr_2}$. By the inductive hypothesis,
+  $\hasftype{\varnothing}{\sexpr'_1}{\funcftype{\sftype_2}{\sftype}}$.
+  Applying rule \fApp, $\hasftype{\varnothing}{\app{\sexpr'_1}{\sexpr_2}}{\sftype}$
+  as desired.
+  %%
+  \pfcase{\fTApp}: We have 
+  $\hasftype{\varnothing}{\sexpr}{\sftype}$ where
+  $\sexpr \equiv \tyapp{\sexpr_1}{\stype}$ and
+  $\sftype \equiv \subst{\sigma}{\tvar}{\forgetreft{\stype}}$. 
+  Inverting (\ref{lem:inversionF}), we have that 
+  $\hasftype{\varnothing}{\sexpr_1}{\polytype{\tvar}{\skind}{\sigma}}$
+  and $\isWFFT{\varnothing}{\forgetreft{\stype}}{\skind}$.
+  We split on three cases for the structure of $\sexpr_1$.
+  %
+  First, suppose $\sexpr_1 \equiv \tabs{\tvar}{\skind}{\sexpr_0}$.
+  Then by rule \eTAppAbs and the determinism of the semantics, 
+  $\sexpr' \equiv \subst{\sexpr_0}{\tvar}{\stype}$.
+  By the inversion of typing, for some $\tvar'$, we have
+  $\hasftype{\bind{\tvar'}{\skind}}{\subst{\sexpr_0}{\tvar}{\tvar'}}
+  {\subst{\sigma}{\tvar}{\tvar'}}$.
+  By the Substitution Lemma (\ref{lem:substitutionFF}), 
+  substituting $\forgetreft{\stype}$ 
+  through for $\tvar$  gives us 
+  $\hasftype{\varnothing}{\subst{\sexpr_0}{\tvar}{\stype}}{\subst{\sigma}{\tvar}{\forgetreft{\stype}}}$ as desired.
+  %
+  Second, suppose $\sexpr_1 \equiv \sconst$, a built in primitive.
+  Then by rule \eTPrim and the determinism of the semantics, 
+  $\sexpr' \delta_T(\sconst,\forgetreft{\stype})$. By the primitives lemma,
+  $\hasftype{\varnothing}{\delta_T(\sconst,\forgetreft{\stype})}{\subst{\sigma}{\tvar}{\forgetreft{\stype}}}$.
+  %
+  Finally, by the canonical forms lemma, $\sexpr_1$ cannot be any other
+  form of value, so it must not be a value. Then by the progress lemma,
+  there is a term $\sexpr'_1$ such that $\sexpr_1 \step \sexpr'_1$. 
+  Then by rule \eTApp and the deterministic semantics
+  $\sexpr' \equiv \tyapp{\sexpr'_1}{\stype}$.  By the inductive hypothesis,
+  $\hasftype{\varnothing}{\sexpr'_1}{\polytype{\tvar}{\skind}{\sigma}}$.
+  Applying rule \fTApp, 
+  $\hasftype{\varnothing}{\tyapp{\sexpr'_1}{\stype}}{\subst{\sigma}{\tvar}{\forgetreft{\stype}}}$
+  as desired.
+  %%
+  \pfcase{\fLet}: We have 
+  $\hasftype{\varnothing}{\sexpr}{\sftype}$ where
+  $\sexpr \equiv \eletin{x}{\sexpr_1}{\sexpr_2}$. Inverting,
+  we have that 
+  $\hasftype{\bind{y}{\sftype_1}}{\subst{\sexpr_2}{x}{y}}{\sftype}$
+  and $\hasftype{\varnothing}{\sexpr_1}{\sftype_1}$
+  for some type $\sftype_1$. 
+  By the progress lemma either $\sexpr_1$ is a value
+  or there is a term $\sexpr'_1$ such that $\sexpr_1 \step \sexpr'_1$.
+  %
+  In the former case, rule \eLetV and determinism give us
+  $\sexpr' \equiv \subst{\sexpr_2}{x}{\sexpr_1}$.
+  By the Substitution Lemma (substituting $\sexpr_1$ for $x$), 
+  we have $\hasftype{\varnothing}{\subst{\sexpr_2}{x}{\sexpr_1}}{\sftype}$
+  as desired because 
+  $\subst{\sexpr_2}{x}{\sexpr_1} = \subst{\subst{\sexpr_2}{x}{y}}{y}{\sexpr_1}$.
+  %
+  In the latter case, by rule \eLet and determinism give us, 
+  $\sexpr' \equiv \eletin{x}{\sexpr'_1}{\sexpr_2}$.
+  By the inductive hypothesis we have that 
+  $\hasftype{\varnothing}{\sexpr'_1}{\sftype_1}$ and by rule \fLet 
+  we have $\hasftype{\varnothing}{\eletin{x}{\sexpr'_1}{\sexpr_2}}{\sftype}$. 
+  %%
+  \pfcase{\fAnn}: We have 
+  $\hasftype{\varnothing}{\sexpr}{\sftype}$ where
+  $\sexpr \equiv \tyann{\sexpr_1}{\stype}$. Inverting,
+  we have the $\hasftype{\varnothing}{\sexpr_1}{\sftype}$ and
+  $\sftype = \forgetreft{\stype}$. 
+  By the progress lemma, either $\sexpr_1$ is a value
+  or there is a term $\sexpr'_1$ such that $\sexpr_1 \step \sexpr'_1$.
+  %
+  In the former case, by rule \eAnnV and the determinism of the semantics, 
+  $\sexpr' \equiv \sexpr_1$. Then we already have that
+  $\hasftype{\varnothing}{\sexpr'}{\sftype}$
+  %
+  In the latter case, rule \eAnn and determinism give us 
+  $\sexpr' \equiv \tyann{\sexpr'_1}{\stype}$. By the inductive hypothesis
+  we have that $\hasftype{\varnothing}{\sexpr'_1}{\sftype}$. By rule
+  \fAnn we conclude $\hasftype{\varnothing}{\tyann{\sexpr'_1}{\stype}}{\sftype}$.
+  %%
+  \pfcase{\fIf}: We have 
+  $\hasftype{\varnothing}{\sexpr}{\sftype}$ where
+  $\sexpr \equiv \eif{\sexpr_0}{\sexpr_1}{\sexpr_2}$. Inverting,
+  we have that 
+  $\hasftype{\varnothing}{\sexpr_0}{\tbool}$
+  and
+  $\hasftype{\varnothing}{\sexpr_1}{\sftype}$,
+  and
+  $\hasftype{\varnothing}{\sexpr_2}{\sftype}$.
+  %
+  By the progress lemma either $\sexpr_0$ is a value
+  or there is a term $\sexpr'_0$ such that $\sexpr_0 \step \sexpr'_0$.
+  %
+  In the former case, the Canonical Forms Lemma (\ref{lem:canonicalF})
+  tells us that $\sexpr_0 = \ttrue$ or $\tfalse$.
+  By determinism of the semantics we have that 
+  $\sexpr' \equiv {\sexpr_1}$
+  or $\sexpr' \equiv {\sexpr_2}$ respectively.
+  %
+  In either case we can immediately conclude that $\sexpr'$
+  has the desired type.
+  %
+  In the latter case above,rule \eIf and determinism give us, 
+  $\sexpr' \equiv \eif{\sexpr'_0}{\sexpr'_1}{\sexpr_2}$.
+  By the inductive hypothesis we have that 
+  $\hasftype{\varnothing}{\sexpr'_0}{\tbool}$ and by rule \fIf 
+  we have 
+  $\hasftype{\varnothing}{\eif{\sexpr'_0}{\sexpr_1}{\sexpr_2}}{\sftype}$. 
+  %%
+  \end{itemize}
+\end{proof}
 %
-\begin{conference}
-The interesting cases are for \fApp and \fTApp that require 
-a Substitution~\Cref{lem:substitutionF}.
-\end{conference}
-\begin{fullversion}
-    The interesting cases are for \fApp and \fTApp.
-    For applications of primitives, preservation 
-requires the Primitives~\Cref{lem:primitivesF},
-while the general case needs a Substitution~\Cref{lem:substitutionF}.
-\end{fullversion}
+The proof of preservation for $\sysrf$ differs in two cases above. 
+In \tApp and \tTApp, we must use the 
+Inversion of Typing lemma (\ref{lem:inversion})
+from $\sysrf$ because the presence of rule \tSub prevents us from 
+inferring the last rule used to type a term or type abstraction.
+%
+Furthermore, in case \tApp the substitution lemma would give us that 
+$\hastype{\varnothing}{\sexpr'}{\subst{\stype}{x}{\sval_x}}$ for 
+some value $\sval_x$. However we need to show preservation of the
+existential type $\existype{x}{\stype_x}{\stype}$. This is done by
+using rule \sWitn to show that, in fact, 
+$\isSubType{\varnothing}{\subst{\stype}{x}{\sval_x}}{\existype{x}{\stype_x}{\stype}}$.
+%%
 
 \mypara{Substitution Lemma}
 %
@@ -411,12 +765,165 @@ and $\isWFFT{\tcenv}{\forgetreft{\stype_{\al}}}{k_{\al}}$, then
                {\subst{\sftype}{\al}{\forgetreft{\stype_{\al}}}}}$.
 \end{enumerate}
 \end{lemma}
+%%
+\begin{proof}
+  We give the proofs for part (2); part (1) is similar but slightly
+  simpler because term variables do not appear in types in $\sysf$
+  We proceed by induction on the derivation tree of the typing judgment
+  $\hasftype{\tcenv', \bind{\al}{k_{\al}}, \tcenv}{\sexpr}{\sftype}$.
+  %%
+  \pfcase{\fPrim}: We have $\sexpr \equiv \sconst$ and
+  $\hasftype{\tcenv', \bind{\al}{k_{\al}}, \tcenv}{\sconst}{\forgetreft{\ty{\sconst}}}$.
+  Neither $\sconst$ nor $\ty{\sconst}$ has any free variables, so each is 
+  unchanged under substitution. Then by rule \tPrim we conclude
+  $\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}{\sconst}{\forgetreft{\ty{\sconst}}}$ because the environment may be chosen arbitrarily.
+  %%
+  \pfcase{\fVar}: We have $\sexpr \equiv x$; by inversion, we get that 
+  $\bind{x}{\sftype} \in \tcenv', \bind{\al}{k_{\al}}, \tcenv$. We must have
+  $\tvar \neq x$ so there are two cases to consider for where $x$ can 
+  appear in the environment. If $\bind{x}{\sftype} \in \tcenv$,  then $\sftype$
+  cannot contain $\tvar$ as a free variable because $x$ is bound first in the environment (which grows from right to left). Then
+  $\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}{x}{\sftype}$
+  as desired because $\subst{\sftype}{\tvar}{\forgetreft{\stype_{\al}}} = \sftype$.
+  Otherwise $\bind{x}{\sftype} \in \tcenv'$ and so 
+  $\bind{x}{\subst{\sftype}{\tvar}{\forgetreft{\stype_{\al}}}} \in \subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv$. Thus
+  $\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}{x}{\subst{\sftype}{\tvar}{\forgetreft{\stype_{\al}}}}$.
+  %
+  (In part (1), we have an additional case where 
+  $\hasftype{\tcenv', \bind{x}{\sftype}, \tcenv}{x}{\sftype}$. We have
+  $\subst{x}{x}{\sval_x} = \sval_x$ and so we can apply 
+  the Weakening Lemma (\ref{lem:weakeningF})
+  to $\hasftype{\tcenv}{\sval_x}{\sftype}$ to obtain
+  $\hasftype{\tcenv', \tcenv}{\sval_x}{\sftype}$.)
+  %%
+  \pfcase{\fApp}: We have $\sexpr \equiv \app{\sexpr_1}{\sexpr_2}$. By inversion
+  we have that
+  $\hasftype{\tcenv', \bind{\al}{k_{\al}}, \tcenv}{\sexpr_1}{\funcftype{\sftype_x}{\sftype}}$
+  and $\hasftype{\tcenv', \bind{\al}{k_{\al}}, \tcenv}{\sexpr_2}{\sftype_x}$.
+  Applying the inductive hypothesis to both of these, we get
+  $\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}{\subst{\sexpr_1}{\tvar}{\stype_{\tvar}}}{\subst{\funcftype{\sftype_x}{\sftype}}{\tvar}{\forgetreft{\stype_{\tvar}}}}$
+  and
+  $\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}{\subst{\sexpr_2}{\tvar}{\stype_{\tvar}}}{\subst{\sftype_x}{\tvar}{\forgetreft{\stype_{\tvar}}}}$. 
+  Combining these by rule \fApp, we conclude
+  $\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}{\subst{\app{\sexpr_1}{\sexpr_2}}{\tvar}{\stype_{\tvar}}}{\subst{\sftype}{\tvar}{\forgetreft{\stype_{\tvar}}}}$.
+  %%
+  \pfcase{\fAbs}: We have $\sexpr \equiv \vabs{x}{\sexpr_1}$ 
+  and $\sftype \equiv \funcftype{\sftype_x}{\sftype_1}$. 
+  By inversion we have that for any fresh $y$, both
+  $\hasftype{\bind{y}{\sftype_x},\tcenv', \bind{\al}{k_{\al}}, \tcenv}
+  {\subst{\sexpr_1}{x}{y}}{\sftype_1}$
+  and
+  $\isWFFT{\tcenv', \bind{\al}{k_{\al}}, \tcenv}{\sftype_x}{\skind_x}$.
+  By the inductive hypothesis, and the Substitution Lemma for 
+  well-formedness judgments, we have
+  $\hasftype{\bind{y}{\subst{\sftype_x}{\al}{\forgetreft{\stype_{\al}}}},\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
+  {\subst{\subst{\sexpr_1}{\al}{\stype_{\al}}}{x}{y}}{\subst{\sftype_1}{\al}{\forgetreft{\stype_{\al}}}}$
+  and
+  $\isWFFT{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
+  {\subst{\sftype_x}{\al}{\forgetreft{\stype_{\al}}}}{\skind_x}$,
+  where we can switch the order of substitutions because $y$ does not 
+  appear free in the well-formed type $\stype_{\tvar}$.
+  Then we can conclude by applying rule \fAbs that 
+  $\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
+  {\subst{\vabs{x}{\sexpr_1}}{\tvar}{\stype_\tvar}}
+  {\subst{\funcftype{\sftype_x}{\sftype_1}}{\tvar}{\forgetreft{\stype_\tvar}}}$.
+  %%
+  \pfcase{\fTApp}: We have $e \equiv e'\; [\stype']$ 
+  and $\sftype \equiv \subst{\sftype'}{\al'}{\forgetreft{\stype'}}$. 
+  By inversion, 
+  $\hasftype{\tcenv', \bind{\al}{k_{\al}}, \tcenv}{e'}{\polytype{\al'}{k'}{\sftype'}}$
+  and $\isWFFT{\tcenv', \bind{\al}{k_{\al}}, \tcenv}{\forgetreft{\stype'}}{k'}$.
+  By the inductive hypothesis,\\
+  $\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
+    {\subst{e'}{\al}{\stype_{\al}}}
+    {\polytype{\al'}{k'}{\subst{\sftype'}{\al}{\forgetreft{\stype_{\al}}}}}$
+  %\]
+  and
+  %\begin{equation}\label{362T}
+  $\isWFFT{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
+    {\subst{\forgetreft{\stype'}}{\al}{\forgetreft{\stype_{\al}}}}{k'}$.
+  %\end{equation}
+  By the definition of refinement erasure,
+  $ \subst{\forgetreft{\stype}}{\al'}{\forgetreft{\stype_{\al}}} 
+      = \forgetreft{\subst{\stype'}{\al}{\stype_{\al}}}$.
+  By applying rule \fTApp, we get
+  %\begin{equation}
+  $\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
+    {\tyapp{\subst{e'}{\al}{\stype_{\al}}}{\subst{\stype'}{\al}{\stype_{\al}}}}
+    {\subst{\subst{\sftype'}{\al}{\forgetreft{\stype_{\al}}}}
+      {\al'}{\forgetreft{\subst{\stype'}{\al}{\stype_{\al}}}}}$.
+  %
+  By the definition of substitution we have 
+  $\tyapp{\subst{e'}{\al}{\stype_{\al}}}{\subst{\stype'}{\al}{\stype_{\al}}} 
+      = \subst{\tyapp{e'}{t'}}{\al}{\stype_{\al}}$
+  and by the commutativity rules for substitution,\\
+  $ \subst{\subst{\sftype'}{\al}{\forgetreft{\stype_{\al}}}}
+      {\al'}{\forgetreft{\subst{\stype'}{\al}{\stype_{\al}}}}
+    = \subst{\subst{\sftype'}{\al'}{\forgetreft{t'}}}{\al}{\forgetreft{\stype_{\al}}}$.
+  %
+  Therefore, we conclude that 
+  $\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
+    {\subst{\sexpr}{\al}{\stype_{\al}}}
+    {\subst{\sftype}{\al}{\forgetreft{\stype_{\al}}}}$.
+  %%
+  \pfcase{\fTAbs}: TODO typesetting
+  %%
+%{\bf Case} {\sc T-AbsT}:We have $\Gamma', x:t_x,\Gamma \vdash e : t$ where $e \equiv \Lambda \al:k. e'$ and $t \equiv \polytype{\al}{k}{t'}$. By inversion, $\al'\bind k, \Gamma', x\bind t_x,\Gamma \vdash e'[\al'/\al] : t'[\al'/\al]$ and $\al'\bind k, \Gamma', x\bind t_x,\Gamma \vdash_w t'[\al'/\al] : k'$ for some $\al'\not\in\dom{\Gamma}$. By the inductive hypothesis
+%\begin{equation}
+%\al'\bind k, \Gamma'[v_x/x],\Gamma \vdash e'[\al'/\al][v_x/x] : t'[\al'/\al][v_x/x] \;\;{\rm and}\;\; \al'\bind k, \Gamma'[v_x/x],\Gamma \vdash_w t'[\al'/\al][v_x/x] : k'.
+%\end{equation}
+%We must have $x\neq \al'$ and we have $x \neq \al$ because bound and free variables are taken to be distinct. Moreover, $v_x$ contains only free variables from $\Gamma$, so $e'[\al'/\al][v_x/x] = e'[v_x/x][\al'/\al]$ and $t'[\al'/\al][v_x/x] = t'[v_x/x][\al'/\al]$. Then by rule {\sc T-AbsT}
+%\begin{equation}
+%\Gamma'[v_x/x], \Gamma' \vdash \Lambda \al:k.(e'[v_x/x]) : \polytype{\al}{k}{t'[v_x/x]}.
+%\end{equation}
+%By definition of substitution, we can rewrite the above as
+%\[
+%\Gamma'[v_x/x],\Gamma \vdash (\Lambda \al:k.e')[v_x/x] : \polytype{\al}{k}{t'}[v_x/x].
+%\]
+%In the type variable substitution lemma, where we have an environment $\Gamma',\beta\bind k_\beta,\Gamma$ and $\Gamma \vdash_w t_\beta : k_\beta$ this proof is similar except that we argue that $e'[\al'/\al][t_\beta/\beta] = e'[t_\beta/\beta][\al'/\al]$ and $t'[\al'/\al][t_\beta/\beta] = t'[t_\beta/\beta][\al'/\al]$ because $\al'\neq\beta$ and only free variables from $\Gamma$ may appear in $t_\beta$.
+
+%% 
+\pfcase{\fLet}: We have $\sexpr \equiv \eletin{x}{\sexpr_1}{\sexpr_2}$
+and by inversion we have that for some type $\sftype_1$,
+$\hasftype{\tcenv', \bind{\al}{k_{\al}}, \tcenv}{\sexpr_1}{\sftype_1}$
+and for some $\notmem{y}{\tcenv', \bind{\al}{k_{\al}}, \tcenv}$,
+$\hasftype{\bind{y}{\sftype_1},\tcenv', \bind{\al}{k_{\al}}, \tcenv}
+{\subst{\sexpr_2}{x}{y}}{\sftype}$.
+By the inductive hypothesis, we have that
+$\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
+{\subst{\sexpr_1}{\tvar}{\stype_\tvar}}{\subst{\sftype_1}{\tvar}{\forgetreft{\stype_\tvar}}}$
+and
+$\hasftype{\bind{y}{\subst{\sftype_1}{\tvar}{\stype_\tvar}},\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
+{\subst{\sexpr_2}{x}{\stype_\tvar}}{\subst{\sftype}{\tvar}{\forgetreft{\stype_\tvar}}}$.
+Then by rule \fLet we conclude
+$\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
+{\eletin{x}{\subst{\sexpr_1}{\tvar}{\stype_\tvar}}{\subst{\sexpr_2}{\tvar}{\stype_\tvar}}}{\subst{\sftype}{\tvar}{\forgetreft{\stype_\tvar}}}$.
+%%
+\pfcase{\fAnn}: We have $\sexpr \equiv \tyann{\sexpr'}{\stype}$ 
+and by inversion we have that $\forgetreft{\stype} = \sftype$ and 
+$\hasftype{\tcenv', \bind{\al}{k_{\al}}, \tcenv}
+{\sexpr'}{\sftype}$.
+By the inductive hypothesis, we have
+$\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
+{\subst{\sexpr'}{\tvar}{\stype_\tvar}}{\subst{\sftype}{\tvar}{\forgetreft{\stype_\tvar}}}$.
+By our definition of refinement erasure, we have
+$\forgetreft{\subst{\stype}{\tvar}{\stype_\tvar}}
+ = \subst{\forgetreft{\stype}}{\tvar}{\forgetreft{\stype_\tvar}}$
+and we have 
+$\subst{\tyann{\sexpr'}{\stype}}{\tvar}{\stype_\tvar} 
+ = \tyann{\subst{\sexpr'}{\tvar}{\stype_\tvar}}{\subst{\stype}{\tvar}{\stype_\tvar}}$. Thus by rule \fAnn,
+$\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
+{\subst{\tyann{\sexpr'}{\stype}}{\tvar}{\stype_\tvar}}{\subst{\forgetreft{\stype}}{\tvar}{\forgetreft{\stype_\tvar}}}$.
+%%
+\pfcase{\fIf}: TODO Typesetting
+%%
+\end{proof}  
 
 %\NV{Edited, Michael check}
-The proof goes by induction on the derivation tree. 
+%The proof goes by induction on the derivation tree. 
 Because we encoded our typing rules using 
 cofinite quantification % (\S~\ref{sec:lang:static})
-the proof does not require a renaming lemma, but 
+the proof above does not require a renaming lemma, but 
 the rules that lookup environments 
 (rules \tVar and \wtVar) do need a \emph{Weakening Lemma}:
 %\Cref{lem:weakeningF}. 
@@ -427,16 +934,17 @@ the rules that lookup environments
 If $\hasftype{\tcenv_1,\!\tcenv_2\!}{\!\sexpr\!}{\!\sftype}$ and 
    $x,\!\al\! \not\in\! {\tcenv_1, \!\tcenv_2}$,
 then 
-%\begin{enumerate} 
-    %\begin{inparaenum}[i)]
-%    \item 
-    \hasftype{\tcenv_1,\!\bind{x}{\sftype_x},\!\tcenv_2}{\!\sexpr\!}{\!\sftype}
-    %\item 
-    and
+\begin{enumerate} 
+    \item 
+    \hasftype{\tcenv_1,\!\bind{x}{\sftype_x},\!\tcenv_2}{\!\sexpr\!}{\!\sftype}, and
+    \item 
     \hasftype{\tcenv_1,\!\bind{\al}{\skind},\!\tcenv_2}{\!\sexpr\!}{\!\sftype}.
-    %\end{inparaenum}
-%\end{enumerate}
+\end{enumerate}
 \end{lemma}
+%
+The proof is fairly similar to the proof of the Substitution Lemma above,
+and we omit it here.
+
 
 % \begin{proof}
 % The proof is by straightforward structural induction on the derivation trees of $\sysf$ typing judgments, weakening the typing and well-formedness judgments in the antecedents. Where needed, we apply the Change of Variables Lemma below to ensure that anything we add to the environment is distinct from the larger, weakened environment.

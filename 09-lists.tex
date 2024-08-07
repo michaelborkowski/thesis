@@ -223,7 +223,7 @@ for both calculi.
 %%    & & \\
 %\end{array}$$
          
-\mypara{Typing, Subtyping, and Well-formedness}
+\mypara{Typing and Well-formedness}
 %
 Next, we present the static semantics of \sysrfd by describing
 the additional rules used to establish our
@@ -335,19 +335,29 @@ and the fact that the scrutinee is one element longer than
 the tail to which $\sexpr_c$ is being applied.
 %
 We could express the antecedent judgment as
-\[
+\begin{equation}
+  \label{badswitch}
 \forall\notmem{z}{\tcenv}. 
   \hastype{\bind{z}{\breft{\tlist{\stype}}{x}{p},\tcenv}}
      {\sexpr_c}
-     {\funcftype{\stype}{\funcftype{\tlist{\stype}\greybox{\breft{}{\vv}{\suc \len \vv = \len y}}}{\stype'}}}
-\]
+     {\funcftype{\stype}{\funcftype{\tlist{\stype}\greybox{\breft{}{\vv}{\suc \len \vv = \len z}}}{\stype'}}}
+\end{equation}
 but this would pose a problem for proving type soundness 
 for \sysrfd (specifically preservation)
-from a minimal interace of axioms (\ref{lem:implicationD}) 
+from a minimal interface of axioms (\ref{lem:implicationD}) 
 for implication.
 %
-These axioms are syntactic, and so slight variations
-
+These axioms are purely syntactic, and so are not sufficient
+to prove implications (and hence subtyping obligations) 
+where there are slight variations in refinement syntax. 
+%
+Rule \tCons gives us a refinement that says the length of this list
+is one \emph{longer} than some other list;
+judgment \ref{badswitch} would require us to show that the second
+argument to $\sexpr_c$ has length one \emph{shorter} than some other 
+list. There is no way to derive this knowledge without either a 
+semantic notion of entailment, or a large, unwieldy set of axioms,
+or by changing the form of rule \tSwitch as we did.
 
 
 \begin{figure}
@@ -361,7 +371,7 @@ These axioms are syntactic, and so slight variations
         {\hastype{\tcenv}{\nil{\stype}}{\tlist{\stype}\greybox{\breft{}{x}{\len x = 0}}}}
         {\tNil}
     %
-    \quad  
+    \\  
     %
         \inferrule
         {\hastype{\tcenv}{\sexpr_h}{\stype} \\
@@ -383,7 +393,7 @@ These axioms are syntactic, and so slight variations
           %
          \greybox{\forall\notmem{y, z}{\tcenv}.}
          \hastype{\greybox{\bind{z}{\breft{\tlist{\stype}}{x}{p \wedge \suc \len y = \len x}},
-                          \bind{y}{\breft{\tlist{\stype}}{}{\ttrue}},}\tcenv}
+                          \bind{y}{\tlist{\stype}},}\tcenv}
             {\sexpr_c}{\funcftype{\stype}{\funcftype{\tlist{\stype}\greybox{\breft{}{\vv}{\len y = \len \vv}}}{\stype'}}}
         }
         {\hastype{\tcenv}{\eswitch{\sexpr}{\sexpr_n}{\sexpr_c}}{\stype'}}
@@ -397,578 +407,598 @@ The judgment $\hasftype{\tcenv}{\sexpr}{\sftype}$ is extended by excluding the g
 \vspace{-0.00cm}
 \end{figure}
 
-\begin{comment}
-
-\mypara{Typing Primitives}
+\mypara{New Primitives}
 %
-The type of a built-in primitive $\sconst$ is given by
-the function $\ty{\sconst}$, which is defined for every
-constant of our system. Below we present essential
+The function $\ty{\sconst}$, which gives the type of every
+built-in primitives, is extended for the new primitives
+$\suc$ and $\len$. Below we present essential
 examples of the $\ty{\sconst}$ definition.
 %
 {\small
-$$\begin{array}{rclrcl}
-\ty{\ttrue} & \defeq & \breft{\tbool}{x}{x = \ttrue} &
-%&  \ty{\tfalse} & \defeq& \breft{\tbool}{x}{x = \tfalse} \\
-%\ty{3} & \defeq& \breft{\tint}{x}{x = 3} \\
-%&  \ty{n} & \defeq& \breft{\tint}{x}{x = n} \\
- \ty{\wedge} & \defeq & \functype{x}{\tbool}{\functype{y}{\tbool}{\breft{\tbool}{v}{v = x \wedge y}}} \\
-%  \ty{\neg} & \defeq & \functype{x}{\tbool}{\breft{\tbool}{y}{y = \neg x}} \\
-\ty{3} & \defeq& \breft{\tint}{x}{x = 3} &
-\ty{\leq} & \defeq & \polytype{\al}{\skbase}{\functype{x}{\al}{\functype{y}{\al}{\breft{\tbool}{v}{v = (x \leq y)}}}} \\
-\ty{m\!\!\leq} & \defeq & \functype{y}{\tint}{\breft{\tbool}{v}{v = (m \leq y)}} & 
-% \ty{m\!\!\leq} \defeq&\; \functype{n}{\tint}{\breft{\tbool}{v}{v = (m \leq n)}} \\
-\ty{=} & \defeq & \polytype{\tvar}{\skbase}{\functype{x}{\al}{\functype{y}{\al}{\breft{\tbool}{v}{v = (x = y)}}}}
+$$\begin{array}{rcl}
+\ty{\suc} & \defeq & \functype{y}{\tint}{\breft{\tint}{v}{v = (\suc y)}} \\
+\ty{\len} & \defeq & \polytype{\tvar}{\skstar}{\functype{y}{\al}{\breft{\tint}{v}{v = (\len y)}}}
 \end{array}$$
 }
-We note that the $=$ used in the refinements is the polymorphic
-equals with type applications elided.
-%
-Further, we use $m\!\!\leq$ to represent
-an arbitrary member of the infinite family
-of primitives $0\!\!\leq,\, 1\!\!\leq,\, 2\!\!\leq,\ldots$.
-%
-For \sysf we erase the refinements
-using $\forgetreft{\ty{\sconst}}$.
-%
-The rest of the definition is similar.
+For ease of reading, the $\len$ used in the refinements 
+is the polymorphic $\len$,
+but with the type applications elided.
 
-Our choice to make the typing and reduction
-of constants external to our language,
-\ie given by the functions
-$\ty{\sconst}$ and $\tc{\sconst}$,
-makes our system easily extensible with further constants, 
-including a terminating \texttt{fix} constant to encode induction.
-%
-The requirement, for soundness, is that
-these two functions % on constants
-together satisfy the following four conditions.
-%
-\begin{requirement}(Primitives) \label{lem:prim-typing}
-For every primitive $c$,
-\begin{enumerate}
-\item If $\ty{\sconst} = \breft{\sbase}{x}{\spred}$, then
-  $\isWellFormed{\varnothing}{\ty{\sconst}}{\skbase}$ and
-  $\imply{\varnothing}{\ttrue}{\subst{\spred}{x}{\sconst}}$.
-\item If $\ty{\sconst} = \functype{x}{\stype_x}{\stype}$ or
-         $\ty{\sconst} = \polytype{\al}{\skind}{\stype}$, then
-         $\isWellFormed{\varnothing}{\ty{\sconst}}{\skstar}$.
-\item If ${\ty{\sconst}} = \functype{x}{\stype_x}{\stype}$,
-      then for all $v_x$ such that
-     $\hastype{\varnothing}{v_x}{\stype_x}$,
-     % $\delta(\sconst,v)$ is defined and
-    $\hastype{\varnothing}{\delta(\sconst,v_x)}{\subst{\stype}{x}{v_x}}$.
-\item If ${\ty{\sconst}} = \polytype{\al}{\skind}{\stype}$,
-      then for all $\stype_\al$ such that
-     $\isWellFormed{\varnothing}{\stype_\al}{\skind}$,
-     % $\delta_T(\sconst,\stype)$ is defined and we have
-    $\hastype{\varnothing}{\delta_T(\sconst,\stype_\al)}{\subst{\stype}{\al}{\stype_\al}}$.
-\end{enumerate}
-\end{requirement}
 
-Theorem 3 of~\cite{Vazou14} proves that 
-a terminating \texttt{fix} constant satisfies
-requirement~\ref{lem:prim-typing}. 
-
-To type constants, rule \tPrim gives the type
-$ty(\sconst)$ to any built-in
-primitive $\sconst$, in any context.
-%
-\begin{fullversion}
-The typing rules for boolean and integer
-constants are included in \tPrim.
-\end{fullversion}
-
-\mypara{Typing Variables with Selfification}
-%
-Rule \tVar establishes that any variable $x$ that
-appears as $\bind{x}{\stype}$ in environment $\tcenv$
-can be given the \emph{selfified} type \cite{Ou2004}
-$\self{\stype}{x}{\skind}$ provided that
-$\isWellFormed{\tcenv}{\stype}{\skind}$.
-%
-This rule is crucial in practice,
-to enable path-sensitive ``occurrence'' typing \cite{Tob08},
-where the types of variables are refined by control-flow guards.
-%
-\NV{Can we use an example from the overview?}
-\NV{go prime require self for if condition}
-For example, suppose we want to establish
-$\hastype{\bind{\al}{\skbase}}{(\vabs{x}{x})}{\functype{x}{\al}{\breft{\al}{y}{x=y}}}$,
-and not just $\hastype{\bind{\al}{\skbase}}{(\vabs{x}{x})}{\funcftype{\al}{\al}}$.
-%
-The latter would result
-if \tVar merely stated that
-$\hastype{\tcenv}{x}{\stype}$
-whenever $\bind{x}{\stype} \in \tcenv$.
-%
-Instead, we strengthen the \tVar rule to
-be \emph{selfified}.
-%:
-%
-Informally, to get information about $x$
-into the refinement level, we need to say
-that $x$ is constrained to elements of
-type $\al$ that are equal to $x$ itself.
-%
-In order to express the exact type of
-variables, below we define the ``selfification''
-function that strengthens a refinement
-with the condition that a value is equal
-to itself.
-%
-Since abstractions do not admit equality,
-we only selfify the base types and the existential
-quantifications of them.
-%
-$$\begin{array}{r@{\hskip 0.03in}c@{\hskip 0.03in}l@{\hskip 0.2in}r@{\hskip 0.03in}c@{\hskip 0.03in}l}
-  \self{\existype{z}{t_z}{t}}{x}{\skind} & \defeq & \existype{z}{t_z}{\self{t}{x}{\skind}} & 
-  \self{\breft{\sbase}{z}{p}}{x}{\skbase} & \defeq & \breft{\sbase}{z}{p \wedge z = x} \\
-  \self{\functype{x}{t_x}{t}}{\_}{\_} & \defeq & \functype{x}{t_x}{t} &
-  \self{\breft{\sbase}{z}{p}}{x}{\skstar} & \defeq & \breft{\sbase}{z}{p} \\ 
-  \self{\polytype{\al}{k}{t}}{\_}{\_} & \defeq & \polytype{\al}{k}{t}
-% \self{\stype}{x}{\skstar}               & \defeq & \stype &
-%  & &
-\end{array}$$
-
-\mypara{Typing Applications with Existentials}
-%
-Our rule \tApp states the conditions for typing
-a term application $\app{\sexpr}{\sexpr_x}$.
-%
-Under the same environment,
-we must be able to type $\sexpr$ at
-some function type $\functype{x}{\stype_x}{\stype}$ and
-$\sexpr_x$ at $\stype_x$. Then we can give $\app{\sexpr}{\sexpr_x}$
-the existential type $\existype{x}{\stype_x}{\stype}$.
-%
-The use of existential types in rule \tApp
-is one of the distinctive features of our language
-and was introduced by~\citet{Knowles09}.
-%
-As overviewed in \S~\ref{overview:exists},
-we chose this form of \tApp over the conventional
-form of $\hastype{\tcenv}{\app{\sexpr}{\sexpr_x}}{\subst{\stype}{x}{\sexpr_x}}$
-because our version prevents
-the substitution of arbitrary expressions (\eg functions and type abstractions)
-into refinements.
-%
-As an alternative, we could have used ANF (A-Normal Form~\cite{Flanagan93}),
-but our metatheory would be more complex
-since ANF is not preserved under the small step operational semantics.
-
-\mypara{Other Typing Rules}
-%
-\begin{fullversion}
-    Rule \tAbs says that we can type a lambda abstraction
-    $\vabs{x}{\sexpr}$ at a function type $\functype{x}{\stype_x}{\stype}$
-    whenever $\stype_x$ is well-formed and the body $\sexpr$
-    can be typed at $\stype$ in the environment augmented by binding
-    a fresh variable to $\stype_x$.  
-\end{fullversion}
-%
-Our rule \tTApp states that whenever a term $\sexpr$ has polymorphic
-type $\polytype{\al}{\skind}{s}$, then for any well-formed type $\stype$
-with kind $\skind$, %in the same environment, 
-we can give the type
-$\subst{s}{\al}{\stype}$ to the type application $\tyapp{\sexpr}{\stype}$.
-%
-For the \sysf variant of \tTApp, we erase the refinements (via $\forgetreft{\stype}$)
-before checking well-formedness and performing the substitution.
-%
-\begin{fullversion}
-    The rule \tTAbs establishes that a type-abstraction $\tabs{\al}{\skind}{\sexpr}$
-    can be given a polymorphic type $\polytype{\al}{\skind}{\stype}$ in some % environment
-    $\tcenv$ whenever $\sexpr$ can be given the well-formed type $\stype$
-    in %the environment 
-    $\tcenv$ augmented by binding a fresh type variable
-    to kind $\skind$.
-    %
-    Next, rule $\tLet$ states that an expression $\eletin{x}{\sexpr_x}{e}$ has type
-    $\stype$ in some environment whenever $\stype$ is well-formed, $\sexpr_x$ can
-    be given some type $\stype_x$, and the body $\sexpr$ can be given type $\stype$
-    in the environment augmented by binding a fresh variable to $\stype_x$.
-\end{fullversion}
-%
-Rule $\tAnn$ establishes that an explicit annotation $\tyann{\sexpr}{\stype}$
-indeed has type $\stype$ when the underlying %expression 
-$\sexpr$ has type $\stype$ and $\stype$ is well-formed.
-The \sysf version of the rule erases the refinements and uses
-$\forgetreft{\stype}$.
-%
-Rule $\tIf$ states that a conditional expression $\eif{\sexpr}{\sexpr_1}{\sexpr_2}$
-has the type $\stype$ when the guard $\sexpr$ can be 
-given type $\tbool$ refined by $p$ and $\sexpr_1$ (\resp $\sexpr_2$)
-can be given type $\stype$ in the environment $\tcenv$ 
-augmented by the knowledge we have about the type 
-and semantics of the guard $\sexpr$.
-The extension of the environment $\tcenv$
-with a fresh variable that captures the semantics of the guard
-when checking the two paths is critical to 
-permit path-sensitive reasoning.
-%
-Finally, rule \tSub tells us that we can exchange a subtype $s$
-for a supertype $t$ in a judgment $\hastype{\tcenv}{\sexpr}{t}$
-provided 
-$t$ is well-formed and
-$\isSubType{\tcenv}{s}{t}$, which we present next.
-%
 \subsection{Subtyping}
 \label{sec:typing:sub}
 
-The \emph{subtyping} judgment ${\isSubType{\tcenv}{s}{t}}$, 
-defined in \Cref{fig:s}, 
-stipulates that the type $s$ is a subtype of
-the type $t$ in the environment $\tcenv$
-and is used in the subsumption typing rule \tSub (of~\Cref{fig:typing}).
+\Cref{fig:s} presents the new rule to establish the 
+subtyping judgment ${\isSubType{\tcenv}{s}{t}}$.  
+%
+Rule \sList states that one list type
+$\breft{\listtype{\stype_1}}{\vv}{\spred_1}$
+is a subtype of another list type
+$\breft{\listtype{\stype_2}}{\vv}{\spred_2}$
+in some environment $\tcenv$, when
+$\stype_1$ is a subtype of $\stype_2$ and 
+$\spred_1$ implies $\spred_2$
+in the
+environment $\tcenv$ augmented  by binding
+a fresh type variable to kind $\skind$.
 
 \begin{figure}
 \judgementHead{Subtyping}{\isSubType{\tcenv}{s}{t}}
 
 \begin{mathpar}   %%%%%%%%%%%%%%%%%% SUBTYPING %%%%%%%%%%%%%%%%%%
-  \inferrule*[Right=\sFunc]
-  { \isSubType{\tcenv}{t_{x2}}{t_{x1}} \quad
-    \forall\notmem{y}{\tcenv}. \quad
-    \isSubType{\bind{y}{t_{x2}},\tcenv}{\subst{t_1}{x}{y}}{\subst{t_2}{x}{y}} }
-  {\isSubType{\tcenv}{\functype{x}{t_{x1}}{t_1}}{\functype{x}{t_{x2}}{t_2}}} \\
 %
-\and
-%
-  \inferrule*[Right=\sWitn]
-  { \hastype{\tcenv}{\sval_x}{\stype_x} \quad
-    \isSubType{\tcenv}{\stype}{\subst{\stype'}{x}{\sval_x}}}
-  {\isSubType{\tcenv}{\stype}{\existype{x}{\stype_x}{\stype'}}}
-%
-\and
-%
-  \inferrule*[Right=\sBind]
-  { \forall\notmem{y}{\free{\stype}\cup \tcenv}. \quad
-    \isSubType{\bind{y}{\stype_x},\tcenv}{\subst{\stype}{x}{y}}{\stype'}
-%    \quad
-%    \lc{\stype'}
-  }
-  {\isSubType{\tcenv}{\existype{x}{\stype_x}{\stype}}{\stype'}} \\
-%
-\and
-%
-  \inferrule*[Right=\sPoly]
-  { \forall\notmem{\al'}{\tcenv}. \quad
-    \isSubType{\bind{\al'}{\skind},\tcenv}{\subst{\stype_1}{\al}{\al'}}{\subst{\stype_2}{\al}{\al'}} }
-  {\isSubType{\tcenv}{\polytype{\al}{\skind}{\stype_1}}{\polytype{\al}{\skind}{\stype_2}}}
-%
-\and
-%
-  \inferrule*[Right=\sBase]
-  {\forall\notmem{y}{\tcenv}. \quad
-    \imply{\bind{y}{{\sbase}},\tcenv}{\subst{p_1}{x}{y}}{\subst{p_2}{x}{y}} }
-  {\isSubType{\tcenv}{\breft{\sbase}{x}{\spred_1}}{\breft{\sbase}{x}{\spred_2}}}
+  \inferrule*[Right=\sList]
+  {\isSubType{\tcenv}{\stype_1}{\stype_2} \quad
+    \forall\notmem{y}{\tcenv}. \;\;
+    \imply{\bind{y}{\listtype{\stype_1}\{\ttrue\}},\tcenv}{\subst{p_1}{x}{y}}{\subst{p_2}{x}{y}} }
+  {\isSubType{\tcenv}{\breft{\listtype{\stype_1}}{x}{\spred_1}}
+                     {\breft{\listtype{\stype_2}}{x}{\spred_2}}}
 \end{mathpar}
 \vspace{-0.00cm}
 \caption{Subtyping Rules.}
-\label{fig:s}
-\label{fig:subtyping}
-\label{fig:ent}
+\label{fig:sD}
+\label{fig:subtypingD}
+%\label{fig:ent}
 \vspace{-0.00cm}
 \end{figure}
-\mypara{Subtyping Rules}
-\begin{fullversion}  
-    The rule \sFunc states that one function type $\functype{x_1}{t_{x1}}{t_1}$
-    is a subtype of another function type $\functype{x_2}{t_{x2}}{t_2}$ in a
-    given environment $\tcenv$ when both $t_{x2}$ is a subtype of $t_{x1}$
-    and $t_1$ is a subtype of $t_2$ when we augment $\tcenv$ by
-    binding a fresh variable to type $t_{x2}$.
-    As usual, function subtyping is contravariant
-    in the input type and covariant in the outputs.
-\end{fullversion}
-%
-Rules \sBind and \sWitn establish subtyping for existential
-types \cite{Knowles09}, \resp when the existential
-appears on the left or right.
-%
-Rule \sBind allows us to exchange a universal quantifier
-(a variable bound to some type $\stype_x$ in the environment)
-for an existential quantifier.
-%
-If we have a judgment of the form
-$\isSubType{\bind{y}{\stype_x},\tcenv}{\subst{\stype}{x}{y}}{\stype'}$
-where $y$ does \emph{not} appear free in either $\stype'$ or in the context $\tcenv$,
-%$\stype'$ is locally closed, which means that all its deBruijn
-%indices point to binders within $\stype'$ (denoted $\lc{t'}$),
-% \NV{We should not talk about locally closed since we do not model deBruin.
-%     We could instead add a well formedness requirement, but I assume you have a proof
-%     that everything in the right hand side of a subtyping is well formed?}
-then we can conclude that $\existype{x}{\stype_x}{\stype}$
-is a subtype of $\stype'$.
-%
-Rule \sWitn states that if type $\stype$ is a subtype of
-$\subst{\stype'}{x}{\sval_x}$ for some value $\sval_x$
-of type $\stype_x$, then we can discard the specific
-\emph{witness} for $x$ and quantify existentially to
-obtain that $\stype$ is a subtype of $\existype{x}{\stype_x}{\stype'}$.
-%
-\begin{fullversion} 
-    Rule \sPoly states that one polymorphic type
-    $\polytype{\al}{\skind}{\stype_1}$
-    is a subtype of another polymorphic type
-    $\polytype{\al}{\skind}{\stype_2}$
-    in some environment $\tcenv$, when
-    $\stype_1$ is a subtype of $\stype_2$ in the
-    environment $\tcenv$ augmented  by binding
-    a fresh type variable to kind $\skind$.
-\end{fullversion}
 
-Refinements enter the scene in the rule \sBase which
-specifies
-%uses implication to specify
-that a refined base type $\breft{\sbase}{x}{p_1}$
-is a subtype of another $\breft{\sbase}{x}{p_2}$
-in context $\tcenv$ when $p_1$ \emph{implies} $\spred_2$
-in the environment $\tcenv$ augmented by binding
-a fresh variable to the unrefined type $\sbase$.
+\mypara{Implication}
+In \S~\ref{sec:typing:implication} we discussed our approach to formalizing
+implication by giving both an axiomatized interface and a 
+denotational implementation. 
 %
-%Next, we describe how we formalized implication.
-
-\subsection{Implication}
-\label{sec:typing:implication}
-
-The \emph{implication} judgment $\imply{\tcenv}{\spred_1}{\spred_2}$
-states that the implication $\spred_1 \Rightarrow \spred_2$
-holds under the assumptions captured by the context $\tcenv$.
-%
-In refinement type implementations~\cite{newfstar,Seidel14}, this relation
-is implemented as an external automated (usually SMT) solver.
-%
-Since external solvers are not easy to encode in mechanized proofs,
-we follow an approach that decouples the mechanization from the implementation. 
-Concretely, 
-first we define the interface of the implication (\S~\ref{sec:typing:implication:interface})
-that precisely captures all the requirements that the implication 
-judgement should satisfy to establish the soundness of $\sysrf$. 
-Then, we define two alternative implementations of the interface: 
-a logical implementation (\S~\ref{sec:typing:implication:logical})
-that is used in refinement type implementations 
-and a denotational implementation (\S~\ref{sec:typing:implication:denotational})
-that we used to complete our mechanized proof. 
+First, we give the additional axioms for implication in \sysrfd.
 
 
-\subsubsection{Implication's Interface}
-\label{sec:typing:implication:interface}
-In our mechanization, 
-following~\citet{LehmannTanter}, 
-we encode implication
-as an axiomatized judgment that satisfies the
-requirements below.
-
-
-\begin{requirement}[Implication Interface]\label{lem:implication}
-  The implication relation satisfies the below statements:
+\begin{requirement}[Implication Interface]\label{lem:implicationD}
+  The implication relation satisfies the statements
+  in Requirement~\ref{lem:implication} and the statements below:
   \begin{enumerate}
-      \item (Reflexivity) $\imply{\tcenv}{\spred}{\spred}$.
-      \item (Transitivity) If $\imply{\tcenv}{\spred_1}{\spred_2}$
-        and $\imply{\tcenv}{\spred_2}{\spred_3}$, then
-        $\imply{\tcenv}{\spred_1}{\spred_3}$.
-      \item (Faithfulness) $\imply{\tcenv}{\spred}{\ttrue}$.
-      \item (Introduction) If $\imply{\tcenv}{\spred_1}{\spred_2}$
-        and $\imply{\tcenv}{\spred_1}{\spred_3}$, then
-        $\imply{\tcenv}{\spred_1}{\csand{\spred_2}{\spred_3}}$.
-      \item (Conjunction)
-      $\imply{\tcenv}{\csand{\spred_1}{\spred_2}}{\spred_1}$ and
-      $\imply{\tcenv}{\csand{\spred_1}{\spred_2}}{\spred_2}$.
-      \item (Repetition)
-      $\imply{\tcenv}{\csand{\spred_1}{\spred_2}}
-                     {\csand{\spred_1}{\csand{\spred_1}{\spred_2}}}$.
-      \item (Evaluation) If $\evalsTo{\spred_1}{\spred_2}$, 
-        then $\imply{\tcenv}{\spred_1}{\spred_2}$
-        and  $\imply{\tcenv}{\spred_2}{\spred_1}$.
-      \item (Narrowing) If
-      $\imply{\tcenv_1,\bind{x}{t_x},\tcenv_2}{\spred_1}{\spred_2}$
-      and $\isSubType{\tcenv_2}{s_x}{t_x}$, then
-      $\imply{\tcenv_1,\bind{x}{s_x},\tcenv_2}{\spred_1}{\spred_2}$.
-      \item (Weaken) If
-      $\imply{\tcenv_1,\tcenv_2}{\spred_1}{\spred_2}$,
-       $a,x\not\in\tcenv$, then
-      $\imply{\tcenv_1,\bind{x}{t_x},\tcenv_2}{\spred_1}{\spred_2}$ and
-      $\imply{\tcenv_1,\bind{a}{k},\tcenv_2}{\spred_1}{\spred_2}$.
-      \item (Subst I) If
-      $\imply{\tcenv_1,\bind{x}{t_x},\tcenv_2}{\spred_1}{\spred_2}$
-      and $\hastype{\tcenv_2}{v_x}{t_x}$, then
-      $\imply{\subst{\tcenv_1}{x}{v_x},\tcenv_2}{\subst{\spred_1}{x}{v_x}}
-                                             {\subst{\spred_2}{x}{v_x}}$.
-      \item (Subst II) If $\imply{\tcenv_1,\bind{a}{k},\tcenv_2}{\spred_1}{\spred_2}$
-      and $\isWellFormed{\tcenv_2}{t}{k}$, then
-      $\imply{\subst{\tcenv_1}{a}{t},\tcenv_2}{\subst{\spred_1}{a}{t}}
-      {\subst{\spred_2}{a}{t}}$.
-      \item (Strengthening) If
-      $\imply{\bind{y}{\breft{\sbase}{x}{q},\tcenv}}{\spred_1}{\spred_2}$,
-      then $\imply{\bind{y}{\sbase},\tcenv}{\csand{\subst{q}{x}{y}}{\spred_1}}
-                  {\csand{\subst{q}{x}{y}}{\spred_2}}$.
+      \item (Exact Quantification) If
+      $\hastype{\tcenv}{v_x}{t_x}$ and
+      $\isWellFormed{\tcenv}{t_x}{\skbase}$ and 
+      $\bind{x}{\self{t_x}{v_x}{\skbase}} \in \tcenv$ 
+      and $x\not\in \free{v_x}$ then
+      $\imply{\tcenv}{\spred}{\subst{\spred}{x}{v_x}}$.
+      %
+      \item (Equal Length Quantification) If
+      $\hastype{\tcenv}{\sval}{\breft{\listtype{\stype}}{x}{\spred}}$ and
+      $\isWellFormed{\tcenv}{\breft{\listtype{\stype}}{x}{\spred}}{\skstar}$ and \\
+      $\bind{x}{\breft{\listtype{\stype}}{x}{\len x = \len \sval \wedge \spred}} \in \tcenv$ 
+      and $x\not\in \free{\sval}$ and \safeListVar{x}{q} then
+      $\imply{\tcenv}{q}{\subst{q}{x}{\sval}}$\\
+      and
+      $\imply{\tcenv}{\subst{q}{x}{\sval}}{q}$.
   \end{enumerate}
 \end{requirement}
 
 \noindent
-This interface  precisely explicates
-the requirements of
-the implication checker 
-to establish the soundness of the
-entire refinement type system.
+The first statement says that whenever 
+$\bind{x}{\self{t_x}{v_x}{\skbase}}$ appears 
+bound in $\tcenv$, then $x$ is effectively being
+universally quantified over a type with just one
+inhabitant (up to equality). Then we assume 
+that a refinement $\spred$ implies $\spred$ with
+all occurrences of $x$ replaced by $v_x$.
 %
-The first six statements are standard properties of implication. 
-Evaluation is used to prove that built-in constants satisfy the~\Cref{lem:prim-typing} 
-and the rest, as captured by their name, are required to prove  
-the narrowing (\ref{lem:narrowing}), weakening (\ref{lem:weakening}), 
-substitution (\ref{lem:subst}) lemmas hold in \sysrf. 
-
-Our requirements are very similar to Assumption 1 of~\cite{Knowles09}. 
-Our Strengthening and Subst II cases are required for polymorphism, thus 
-they do not appear in~\citet{Knowles09}'s assumption.  
-Instead they require Consistency and Exact Quantification. 
-We do not require Exact Quantification since our relation captures 
-the minimum requirements to prove soundness. 
-Instead of explicitly requiring Consistency, 
-in \S~\ref{sec:typing:implication:denotational} we define (and mechanize) an implementation, \ie inhabitant, 
-of the interface thus show our assumptions are consistent. 
-
-
-\subsubsection{Logical Implementation (non mechanized)}
-\label{sec:typing:implication:logical}
-The logical implementation of \imply{\tcenv}{\spred_1}{\spred_2}
-checks that the logical implication $\spred_1 \Rightarrow \spred_2$
-is valid assuming the refinements of the base types in $\tcenv$:
+This is semantically valid because any encoding of 
+our refinements in an external logic (such as SMT)
+would map $=$ in our refinement syntax to equality.
 %
-$$
-  \inferrule
-  {\models_{\texttt{LOGIC}} \wedge\{ \subst{\spred}{\vv}{x} \mid \bind{x}{\breft{\sbase}{\vv}{\spred}} \in \tcenv \} \Rightarrow \spred_1 \Rightarrow \spred_2 }
-  {\imply{\tcenv}{\spred_1}{\spred_2}}
-  {\iLog}
-$$
-This encoding is imprecise, since some information is ignored from the environment $\tcenv$, 
-but when the language of refinements is decidable, implication checking 
-is also decidable and can be efficiently checked by an SMT solver.
-\lh, for example, uses this encoding to reduce type checking to decidable 
-implications checked by Z3~\cite{z3}, while the soundness 
-of this implementation (concretely statement 7 of~\Cref{lem:implication}) 
-is hinted by Theorem 2 of~\cite{Vazou14}.
-\citet{10.1145/3546196.3550162} defines a mechanization of a 
-refinement type system in Agda that uses a similar encoding of implication
-where logical implications are checked using Agda's logic. 
+And we also prove that under the denotational definition of
+implication (\S~\ref{sec:typing:implication:denotational})
+our syntactic primitive $=$ actually corresponds to semantic
+equality, and we are thus able to show that this axiom
+follows from the denotational definition.
 
-
-\subsubsection{Denotational Implementation (mechanized)}
-\label{sec:typing:implication:denotational}
-The denotational implementation of \imply{\tcenv}{\spred_1}{\spred_2}
-checks that if $\spred_1$ evaluates to \ttrue, so does $\spred_2$. 
+The second statement, which we call Equal Length Quantification,
+expresses the best possible analogue for lists. We cannot
+appeal to Exact Quantification for any variable $x$ bound to
+a list type in the environment; these types cannot be
+selfified because lists cannot be compared, even for equality,
+in our system.
 %
-$$
-  \inferrule
-  { \forall \clsub\!\in\!\denote{\tcenv}. \
-      \evalsTo{\applysubst{\clsub}{\spred_1}}{\ttrue}
-      \Rightarrow 
-      \evalsTo{\applysubst{\clsub}{\spred_2}}{\ttrue}
-  }
-  {\imply{\tcenv}{\spred_1}{\spred_2}}
-  {\iDen}
-$$
-The refinements $\spred_1$ and $\spred_2$ are boolean expressions, 
-so evaluation uses the operational semantics of~\Cref{fig:opsem}. 
-But, they are open expressions with variables bound in $\tcenv$,
-so before evaluation we apply the closing substitution $\clsub$
-that belongs to the denotation of $\tcenv$, as defined next. 
+However, the refinements that do occur in our system (by virtue
+of appearing in our various rules) do not use the 
+$\texttt{switch}$ statement to destruct lists to inspect
+their contents. Rather, these refinements are entirely agnostic
+about the data contained in lists and are only concerned with
+the length of lists.
+%
+We capture this notion in the recursive function 
+$\safeListVar{x}{q}$ which states that $x$ only appears 
+in $q$ as the argument to the $\len$ function.
+% 
+If this is the case, then the only information that $q$ uses 
+about $x$ is the length. The Exact Length Quantification
+axiom then says that if $x$ is bound to a type that constrains
+the length of $x$ to be equal to the length of a list $v$, 
+then the refinement $q$ is equivalent (under implication)
+to $\subst{q}{x}{v}$.
+
+Previously, we noted in \S~\ref{sec:typing:implication:interface}
+that we did not require the Exact Quantification axiom in
+Assumption 1 of~\cite{Knowles09} to formalize implication in \sysrf.
+% 
+However, we do require it for \sysrfd in our mechanization 
+to verify Requirement~\ref{lem:prim-typing} as it applies to the
+length of lists.
+
+\subsection{Denotational Semantics}
+\label{sec:lists:denotational}
+
+We extend the definition of denotations of types given
+in Figure~\ref{fig:den} to define the denotation of a list type.
+%
+In order to define the denotation 
+$\denote{\breft{\listtype{\stype}}{x}{p}}$
+as the set of closed values
+of the appropriate base type $\listtype{\forgetreft{t}}$
+which satisfy the type's refinement predicate,
+we have to take into account that there are at least two
+refinements here. The entire list $\sval$ must satisfy
+the refinment $\spred$, and additionally the type
+$\stype$ itself may contain refinements which must
+be satisfied by each of the elements of $\sval$.
 
 \begin{figure}
 $$\begin{array}{r@{\hskip 0.03in}c@{\hskip 0.03in}l}
-\denote{\breft{\sbase}{x}{p}} & \defeq &
-  \setcomp{\sval}{\hasftype{\varnothing}{\sval}{\sbase} \,\wedge\, \evalsTo{\subst{p}{x}{\sval}}{\ttrue}} \\
-\denote{\functype{x}{\stype_x}{\stype}} & \defeq &
-  \setcomp{\sval}{\hasftype{\varnothing}{\sval}{\funcftype{\forgetreft{\stype_x}}{\forgetreft{\stype}}} \,\wedge\, (\forall\, \sval_x \in \denote{\stype_x}.\, \evalsTo{\app{\sval}{\sval_x}}{\sval'} \,{\rm s.t.}\, \sval' \in \denote{\subst{\stype}{x}{\sval_x}} }  \\
-\denote{\existype{x}{\stype_x}{\stype}} & \defeq &
-  \setcomp{\sval}{(\hasftype{\varnothing}{\sval}{\forgetreft{\stype}}) \,\wedge\,
-    ( \exists\, \sval_x \in \denote{\stype_x}.\, \sval\in \denote{\subst{\stype}{x}{\sval_x}} }   \\
-\denote{\polytype{\al}{\skind}{\stype}} & \defeq &
-  \setcomp{\sval}{(\hasftype{\varnothing}{\sval}{\polytype{\al}{\skind}{\forgetreft{\stype}}}) \,\wedge\,
-    (\forall\, \stype_\al.\, (\isWellFormed{\varnothing}{\stype_\al}{\skind}) \Rightarrow
-    \evalsTo{\tyapp{\sval}{\stype_\al}}{\sval'}
-    \,{\rm s.t.}\, \sval' \in \denote{\subst{\stype}{\al}{\stype_\al}}} \\ \\ 
-\denote{\tcenv} & \defeq &
-\setcomp{\clsub} %= (x_1 \mapsto v_1,\ldots, x_n \mapsto v_n,  \al_1 \mapsto t_1, \,\ldots,\, \al_m\mapsto t_m)}{
-{\forall\, (x:t) \in \tcenv.\, \clsub(x) \in \denote{\applysubst{\clsub}{t}} \;\wedge\;
-\forall\, (\al:k) \in \tcenv.\, \isWellFormed{\varnothing}{\clsub(\al)}{k}}.
+\denote{\breft{\listtype{\stype}}{x}{p}} & \defeq &
+  \setcomp{\sval}{\hasftype{\varnothing}{\sval}{\listtype{\forgetreft{\stype}}} 
+  \,\wedge\, (\forall\, v_i\in v.\, v_i \in \denote{t})
+  \,\wedge\, \evalsTo{\subst{p}{x}{\sval}}{\ttrue}}.
 \end{array}$$
-\vspace{-0.2cm}
+\vspace{-0.0cm}
 \caption{Denotations of Types and Environments.}
-\label{fig:den}
-\vspace{-0.4cm}
+\label{fig:denD}
+\vspace{-0.0cm}
 \end{figure}
 
-\paragraph{Closing Substitutions}
-A \emph{closing substitution} is a sequence
-of value bindings to variables:
-$
-    \clsub = (x_1\mapsto v_1,\,\ldots,\, x_n\mapsto v_n, \al_1 \mapsto t_1, \,\ldots,\, \al_m\mapsto t_m)
-    \;\; {\rm with\;\; all}\; x_i,\; \al_j\; {\rm distinct.}
-$
+\section{Metatheory of Lists}
+
+Our proof of type soundness of $\sysrfd$ generally follows
+the same structure as the soundness proof for $\sysrf$,
+illustrated in Figure~\ref{fig:graph}.
 %
-We write $\clsub(x)$ to refer to $v_i$ if $x = x_i$
-and we use $\clsub(\al)$ to refer to $t_j$ if $\al = \al_j$.
+However, some lemmas have additional cases that are highly 
+non-trivial and add additional difficulty to the proof. 
 %
-We define $\applysubst{\clsub}{t}$ to be the type derived from $t$
-by substituting for all variables in $\clsub$:
-%
-$
-  \applysubst{\clsub}{t} \defeq \subst{t}{x_1}{v_1}\cdots\subst{}{x_n}{v_n}\subst{}{\al_1}{t_1}\cdots\subst{}{\al_m}{t_m}.
-$
-%
+For instance, we need to be able to invert typing judgments
+such as 
+$\hastype{\tcenv}{\cons{\stype}{\sexpr_h}{\sexpr_t}}{\stype'}$
+both to obtain typing judgments for $\sexpr_h$ and $\sexpr_t$
+and also to obtain a typing judgment that contains the 
+knowledge about the length of $\cons{\stype}{\sexpr_h}{\sexpr_t}$,
+which may have been discarded through subsumption.
+
+We give the highlights for the metatheory of \sysrfd.
 
 
-\paragraph{Denotational Semantics}
-\Cref{fig:den} defines the denotations of types and environments.
-Following~\citet{flanagan06}, 
-each closed type has a denotation $\denote{\stype}$
-containing the set of closed values
-of the appropriate base type
-which satisfy the type's refinement
-predicate.
-(The denotation of a type variable $\al$
-is not defined as we only require
-denotations for closed types.)
+\mypara{Inversion of Typing Judgments}
+\label{sec:soundnessD:inversion}
 %
-We lift the notion of denotations to environments $\denote{\tcenv}$
-as the set of closing substitutions, \ie value
-and type bindings for the variables in $\tcenv$, such that the
-values respect the denotations of the respective $\tcenv$-bound
-types and the types are well formed with respect
-to the corresponding kinds.
-
-
-\paragraph{Revisiting rule~\iDen}
-The premise of the rule~\iDen quantifies 
-over all closing substitutions in the denotations of the 
-typing environment 
-(\ie $\forall \clsub\!\in\!\denote{\tcenv}$). 
-This quantification has two consequences. 
-
-First, the environment denotation appears in a negative position 
-on the premise of the rule. Inspecting~\Cref{fig:den}, 
-the environment denotation uses the type denotation, which in turn uses 
-type checking, thus rendering a \textit{potential circularity
-between type and implication checking} (arrow 6 of~\Cref{fig:dependencies}). 
-Because of the negative occurrence, this mutual dependency 
-would lead to a non-monotonic and thus non-well defined system. 
-To break this circularity, we use $\sysf$'s type checking in the definition 
-of type denotations. 
-
-Second, the quantification is over all closing substitutions
-which are infinite. For example, 
-a typing environment that binds $x$ to an integer 
-(\ie $\bind{x}{\tint}\in \tcenv$) 
-has infinitely many closing substitutions mapping $x$ to a different 
-integer. Thus, the denotational implementation 
-cannot be used to implement a decidable type checker. 
+In \S~\ref{sec:soundness:inversion} we discussed Inversion Lemma
+\ref{lem:inversion}, which allowed us to invert the typing judgment
+for a term- or type-abstraction. We need to extend this 
+lemma to include inverting typing judgments for lists.
 %
-On the positive side, the denotational implementation
-connects implication checking to the operational semantics
-thus it is amicable to mechanization.
-Concretely, we proved (\S~\ref{sec:coq})
-that the denotational implementations satisfies 
-the statements of~\Cref{lem:implication}. 
+We can then recover typing information about the head and tail 
+of this list as well as information about the length of the list that
+may have been lost through use of the subsumption \tSub rule.
+
+\begin{lemma} (Inversion of $\tNil$, $\tCons$) \label{lem:inversionD} 
+    (extends Lemma~\ref{lem:inversion})
+    \begin{enumerate}
+    \item If $\hastype{\tcenv}{\nil{\stype_0}}{\breft{\listtype{\stype}}{x}{\spred}}$
+    and $\isWellFormedE{\tcenv}$,
+    then $\isSubType{\tcenv}{\stype_0}{\stype}$, and
+    $\isWellFormed{\tcenv}{\stype_0}{\skstar}$,\\
+    and $\isSubType{\tcenv}{\breft{\listtype{\stype_0}}{x}{\len x = 0}}
+          {\breft{\listtype{\stype}}{x}{\spred}}$.
+
+    \item If $\hastype{\tcenv}{\cons{\stype_0}{v_1}{v_2}}
+                  {\breft{\listtype{\stype}}{x}{\spred}}$
+    and $\isWellFormedE{\tcenv}$,
+    then 
+    $\isSubType{\tcenv}{\stype_0}{\stype}$,
+    $\isWellFormed{\tcenv}{\stype_0}{\skstar}$,
+    $\hastype{\tcenv}{v_1}{\stype_0}$
+    and for some refinement $q$,
+    $\hastype{\tcenv}{v_2}{\breft{\listtype{\stype_0}}{x}{q}}$
+    and $\isSubType{\tcenv}
+          {\existype{y}{\breft{\listtype{\stype}}{x}{q}}
+                    {\breft{\listtype{\stype_0}}{x}{\len x = \suc \len y}} }
+          {\breft{\listtype{\stype}}{x}{\spred}}$.
+
+  \end{enumerate}                    
+
+\end{lemma}
+%
+The second statement above is important because if
+$\hastype{\tcenv}{\cons{\stype_0}{v_1}{v_2}}
+                  {\breft{\listtype{\stype}}{x}{\spred}}$
+then we cannot get directly to a typing judgment for $v_1$
+or for $v_2$. Indeed, rule \tCons gives us an existentially
+quantified list of type $\listtype{\stype_0}$ with a refinement
+relating the length of the list to its tail; but here $\stype$
+may not even be the same as $\stype_0$, so the derivation tree
+must have used one or more applications of rule \tSub.
+%
+The proof goes by induction on the size of the derivation tree,
+ which must be finite.   
+
+\mypara{Exact Typing}
+Although we cannot apply the exact typing lemma to lists (only 
+base types can be selfified), we can derive an analogous
+statement in terms of equality of length.
+%
+whenever we can type
+a list value $v$ at type $\breft{\listtype{t}}{x}{p}$ then we
+also type $v$ at the type $\breft{\listtype{t}}{x}{p}$
+with the refinement strengthened by $\len x = \len v$.
+%
+\begin{lemma} (Equal Length in Typing, compare to Lemma~\ref{lem:exact}) 
+\label{lem:equalLength}
+%\begin{enumerate}
+  %\item If $\hastype{\tcenv}{e}{t}$, $\isWellFormedE{\tcenv}$, $\isWellFormed{\tcenv}{t}{k}$, and $\isSubType{\tcenv}{s}{t}$, then $\isSubType{\tcenv}{{\rm self}(s, v, k)}{{\rm self}(t, v, k)}$.
+  %\item 
+  If $\hastype{\tcenv}{v}{\breft{\listtype{t}}{x}{p}}$ and $\isWellFormedE{\tcenv}$
+  then $\hastype{\tcenv}{v}{\breft{\listtype{t}}{x}{\len x = \len v \wedge p}}$. 
+%\end{enumerate}
+\end{lemma}
+
+
+\begin{comment}
+
+\mypara{Denotational Soundness}
+\label{sec:soundness:denotationalD}
+\label{sec:denot:soundnessD}
+
+Our statement of denotational soundness remains the same as
+Theorem~\ref{lem:denote-sound-first}.
+%
+Here we emphasize that 
+
+
+
+\begin{lemma}\label{denote-selfification} (Selfified Denotations)
+  If $\isWellFormed{\varnothing}{\stype}{\skind}$,
+     $\hastype{\varnothing}{\sexpr}{\stype}$,
+     $\evalsTo{\sexpr}{\sval}$ for some $\sval \in \denote{\stype}$
+  then $\sval \in \denote{\self{t}{e}{k}}$.
+  %(DenotationsSelfify.hs) Depends on: ${\tt lem\_typing\_wf}$
+\end{lemma}
+
+This lemma captures the intuition
+that if $v \in \denote{\breft{\sbase}{x}{p}}$
+(\ie if $v$ has base type $\sbase$
+and $\evalsTo{\subst{p}{x}{v}}{\ttrue}$),
+then we have $v \in \denote{\breft{\sbase}{x}{ p \wedge x = v}}$
+as $\subst{(p \wedge x=v)}{x}{v}$ certainly evaluates to $\ttrue$.
+%
+The full proof also handles the case that $t$
+is an existential type as well as selfification
+by an expression $e$ that evaluates to $v$.
+
+\end{comment}
+
+\section{Implementation}
+
+We implemented the metatheory of \sysrfd in \coq.
+This mechanization 
+proves both type safety and
+denotation soundness. 
+%
+Compared to mechanization of \sysrf, this proof
+was about $30\%$ longer in lines of code and takes
+about twice as long (two minutes) to check.
+%
+This mechanization is also included as supplementary
+material.
+%
+\Cref{fig:empiricalD} summarizes the development 
+of our metatheory, and points to which areas of the 
+proof increased the most. 
+
+
+\begin{comment}
+\chapter{Soundness of \sysrf} 
+\label{ch:soundness}
+
+
+
+
+
+
+
+\section{Type Safety}
+\label{sec:soundness:safety}
+
+The type safety theorem  states that a well-typed 
+term does not get stuck: \ie either 
+evaluates to a value or can step 
+to another term (progress) 
+of the same type (preservation).
+%
+
+\begin{theorem} (Type Safety of \sysrf) 
+\label{lem:soundness} 
+\begin{enumerate}
+    \item (Type Safety)
+    If $\hastype{\varnothing}{\sexpr}{\stype}$ and $\evalsTo{\sexpr}{\sexpr'}$,
+    then $\sexpr'$ is a value or $\sexpr' \step \sexpr''$
+    %and $\hastype{\varnothing}{\sexpr''}{\stype}$
+    for some $\sexpr''$.
+    \item (No Error)
+    If $\hastype{\varnothing}{\sexpr}{\stype}$ and $\evalsTo{\sexpr}{\sexpr'}$,
+    then $\sexpr' \not = \eerr$.
+\end{enumerate}
+\end{theorem}
+The No Error property explicitly states that well-typed terms 
+cannot evaluate to the term $\eerr$ (that encodes stuck terms)
+and is a direct implication of type safety.
+We prove type safety by induction on the 
+length of the sequence of steps  
+$\evalsTo{\sexpr}{\sexpr'}$, using  
+preservation and progress.
+
+\mypara{Progress} \label{sec:sysf:progress}
+%
+The progress lemma says a well-typed term is a value 
+or steps to some other term.
+%
+\begin{lemma} (Progress) \label{lem:progressF} 
+If $\hastype{\varnothing}{\sexpr}{\stype}$, 
+then $\sexpr$ is a value or $\sexpr \step \sexpr'$ for some $\sexpr'$.
+\end{lemma}
+
+The proof is by induction on the typing derivation 
+using the primitives~\Cref{lem:prim-typing}, that we proved 
+for our built-in primitives, and the inversion of typing lemma.
+
+
+
+\mypara{Preservation} \label{sec:sysf:preservation}
+%
+The preservation lemma states that typing is preserved
+by evaluation.
+%
+\begin{lemma} (Preservation) \label{lem:preservationF} 
+If $\hastype{\varnothing}{\sexpr}{\stype}$ and $\sexpr \step \sexpr'$, 
+then $\hastype{\varnothing}{\sexpr'}{\stype}$.
+\end{lemma}    
+
+The proof is by structural induction on the 
+derivation of the typing judgment and implicitly uses the 
+inversion lemma. 
+We use the determinism of the operational 
+semantics (lemma~\ref{lem:step-determ}) and 
+the canonical forms lemma to case split 
+on $\sexpr$ to determine $\sexpr'$.
+%
+The interesting cases are for \fApp and \fTApp that require 
+a substitution~\Cref{lem:subst}.
+%
+Next, let's see the three main lemmas used in 
+the preservation and progress proofs.
+
+\section{Substitution Lemma}
+\label{sec:soundness:substitution}
+
+%The main result in the \colsubtyping
+%region of~\Cref{fig:graph} is
+%the substitution lemma.
+%
+In $\sysrf$, unlike unrefined calculi such as $\sysf$, 
+typing and subtyping are mutual dependent. 
+%
+Due to this dependency, both the substitution
+the weakening lemmas
+must now be proven
+in a mutually recursive form: %  for both judgments: 
+
+\begin{lemma}\label{substitution} \label{lem:subst} (Substitution)
+    \begin{enumerate}
+        %If $\entails{\tcenv',\bind{\al}{\skind}\tcenv}{p}$ and $\vdash_w \tcenv',\bind{\al}{\skind}\tcenv$ and $\hastype{\tcenv}{t_a}{k}$ then $\entails{\subst{\tcenv'}{\al}{t_\al},\tcenv}{p[t_a/a]}$. (SubstitutionLemmaEntTV.hs) \\
+        \item If $\isSubType{\tcenv_1,\bind{x}{t_x},\tcenv_2}{s}{t}$,
+                 $\isWellFormedE{\tcenv_2}$,
+            and $\hastype{\tcenv_2}{v_x}{t_x}$,
+            then $\isSubType{\subst{\tcenv_1}{x}{v_x},\tcenv_2}{\subst{s}{x}{v_x}}{\subst{t}{x}{v_x}}$.
+            %(SubstitutionLemmaTyp.hs) Our ${\tt lem\_subst\_sub}$ depends on ${\tt lem\_subst\_ent}$. \\
+        \item If $\hastype{\tcenv_1,\bind{x}{t_x},\tcenv_2}{e}{t}$,
+                 $\isWellFormedE{\tcenv_2}$,
+            and $\hastype{\tcenv_2}{v_x}{t_x}$,
+            then $\hastype{\subst{\tcenv_1}{x}{v_x},\tcenv_2}{\subst{e}{x}{v_x}}{\subst{t}{x}{v_x}}$.
+            % (SubstitutionLemmaTyp.hs) Mutually recursive with ${\tt lem\_subst\_sub}$. \\
+        \item If $\isSubType{\tcenv_1,\bind{\al}{\skind},\tcenv_2}{s}{t}$,
+                $\isWellFormedE{\tcenv_2}$,
+            and $\isWellFormed{\tcenv_2}{t_\al}{k}$,
+            then $\isSubType{\subst{\tcenv_1}{\al}{t_\al},\tcenv_2}{\subst{s}{\al}{t_\al}}{\subst{t}{\al}{t_\al}}$.
+            %(SubstitutionLemmaTypTV.hs) Our ${\tt lem\_subst\_tv\_sub}$ depends on ${\tt lem\_subst\_tv\_ent}$.\\
+        \item If $\hastype{\tcenv_1,\bind{\al}{\skind},\tcenv_2}{e}{t}$,
+                 $\isWellFormedE{\tcenv_2}$,
+            and $\isWellFormed{\tcenv_2}{t_\al}{\skind}$,
+            then $\hastype{\subst{\tcenv_1}{\al}{t_\al},\tcenv_2}{\subst{e}{\al}{t_\al}}{\subst{t}{\al}{t_\al}}$.
+        %(SubstitutionLemmaTypTV.hs) Mutually recursive with ${\tt lem\_subst\_tv\_sub}$.
+    \end{enumerate}
+\end{lemma}
+
+The proof goes by induction on the derivation trees. 
+The main difficulty arises
+in substituting some type
+$t_\al$ for variable $\al$
+in $\isSubType{\tcenv_1,\bind{\al}{\skind},\tcenv_2}{\breft{\al}{x_1}{p}}{\breft{\al}{x_2}{q}}$
+because $t_\al$  must be
+strengthened  by
+the refinements $p$ and
+$q$ respectively.
+%
+Because we encoded our typing rules using 
+cofinite quantification~\cite{AydemirCPPW08}
+the proof does not require a renaming lemma, but 
+the rules that lookup environments 
+(rules \tVar and \wtVar) do need a \emph{weakening Lemma}:
+%\Cref{lem:weakeningF}. 
+% and \emph{rename} free variables 
+%in typing and well-formedness judgments (\Cref{lem:freevarsF}).
+
+%As with the $\sysf$ version, the proof 
+%requires the \emph{Weakening}~\Cref{lem:weakening}
+%but now both for typing and subtyping.
+
+%\RJ{where is "weakening" used? the label is unused in the text. CUT or REFER}
+\begin{lemma}\label{lem:weakening} (Weakening)
+If $\notmem{x,\al}{{\tcenv_1, \tcenv_2}}$, then
+    \begin{enumerate}
+        \item if $\hastype{\tcenv_1, \tcenv_2}{\sexpr}{\stype}$
+        then $\hastype{\tcenv_1, \bind{x}{\stype_x}, \tcenv_2}{\sexpr}{\stype}$ and $\hastype{\tcenv_1, \bind{\al}{\skind}, \tcenv_2}{\sexpr}{\stype}$.
+        \item if $\isSubType{\tcenv_1, \tcenv_2}{s}{t}$
+        then $\isSubType{\tcenv_1, \bind{x}{\stype_x}, \tcenv_2}{s}{t}$
+        and $\isSubType{\tcenv_1, \bind{\al}{\skind}, \tcenv_2}{s}{t}$.
+            %\item If $\tcenv', \tcenv \vdash_e p$ then $\tcenv', \bind{x}{t_x}, \tcenv \vdash_e p$ and $\tcenv', \al\bindt k, \tcenv \vdash_e p$.
+            %\item If $\tcenv', \tcenv \vdash_w t:k$ then $\tcenv', \bind{x}{t_x}, \tcenv     \vdash_w t:k$ and $\tcenv', \al\bindt k, \tcenv \vdash_w t:k$.
+    \end{enumerate}
+\end{lemma}
+
+The proof is by mutual induction
+on the derivation of the typing and subtyping judgments.
+
+\section{Narrowing} 
+\label{sec:soundness:narrowing}
+
+The narrowing lemma says that whenever
+we have a judgment where a binding
+$x\bindt t_x$ appears in the binding
+environment, we can replace $t_x$
+by any subtype $s_x$.
+%
+The intuition here is that the judgment
+holds under the replacement because we
+are making the context more specific.
+
+\begin{lemma} \label{subtype-env} \label{lem:narrowing} (Narrowing)
+    If $\tcenv_2 \vdash s_x <: t_x$,  $\isWellFormed{\tcenv_2}{s_x}{k_x}$,
+    and $\isWellFormedE{\tcenv_2}$ then
+    \begin{enumerate}
+        \item if $\tcenv_1, \bind{x}{t_x}, \tcenv_2 \vdash_w t : k$, then
+                 $\tcenv_1, x\bindt s_x, \tcenv_2 \vdash_w t : k $.
+        \item if $\tcenv_1, \bind{x}{t_x}, \tcenv_2 \vdash t_1 <: t_2$, then
+                 $\tcenv_1, x\bindt s_x, \tcenv_2 \vdash t_1 <: t_2$.
+        \item if $\tcenv_1, \bind{x}{t_x}, \tcenv_2 \vdash e : t$, then
+                 $\tcenv_1, x\bindt s_x, \tcenv_2 \vdash e : t$.
+    \end{enumerate}
+\end{lemma}
+
+\begin{fullversion}
+The narrowing proof
+requires an exact typing~\Cref{lem:exact}
+which says that a subtyping
+judgment $\isSubType{\tcenv}{s}{t}$
+is preserved after
+selfification on both types.
+%
+Similarly 
+%\NV{Put these two in one line if we need space}
+
+
+
+% REMOVED LEMMAS
+
+%We can also prove analogous statements for the well-formedness judgments for environments. Next, we have the weakening lemma for well-formedness judgments. As with the free variables lemma, it even suffices for the erased environments to be well-formed.
+
+%\begin{lemma}\label{WF-weaken}
+%    For any environments $\tcenv$, $\tcenv'$ and $x,\al, \not\in dom(\tcenv', \tcenv)$:
+%    If $\tcenv', \tcenv \vdash_w t:k$ and $\vdash_{w} \tcenv', \tcenv$, then $\tcenv', \bind{x}{t_x}, \tcenv \vdash_w t:k$ and $\tcenv', \al\bindt k_{\al}, \tcenv \vdash_w t:k$.
+%\end{lemma}
+
+%Next, we have the substitution lemma for well-formedness judgments.
+
+%\begin{lemma}\label{WF-substitution}
+%    For any environments $\tcenv$, $\tcenv'$ and $x,\al \not\in dom(\tcenv', \tcenv)$:
+%    \item If $\tcenv', \bind{x}{t_x}, \tcenv \vdash_w t:k$ and
+%    $\hastype{\tcenv}{v_x}{t_x}$, then
+%    then $\tcenv'[v_x/x], \tcenv \vdash_w \subst{t}{x}{v_x}:k$.
+%    \item If $\tcenv', \al\bindt k_{\al}, \tcenv \vdash_w t:k$ and
+%    $\isWFFT{\tcenv}{t_{\al}}{k_{\al}}$,
+%    then $\tcenv'[t_{\al}/\al], \tcenv \vdash_w t[t_{\al}/\al]:k$.
+%\end{lemma}
+
+%\begin{lemma}
+%    {\em Typing implies Well-Formedness}: If $\hastype{\tcenv}{e}{t}$ and $\vdash \tcenv$ then $\isWellFormed{\tcenv}{t}{{}^{*}}$. (LemmasTyping.hs) Used in many, many places.
+%\end{lemma}
+
+%    \begin{lemma}
+%        {\em ``Assumption 1'' / Typing of $\delta$}. In the mechanization we  assume something more conservative and then show:  If $\hastype{\varnothing}{c}{ x\bindt t_x->t'}$ and $\hastype{\varnothing}{v}{t_x}$ then $\hastype{\varnothing}{\delta(c,v)}{t'[v/x]}$ (PrimitivesDeltaTyping.hs) (and similarly for the polymorphic Eql). The latter one, our ${\tt lem\_deltaT\_typ}$ depends on ${\tt lem\_subst\_tv\_sub}$.
+%    \end{lemma}
+
+%    \begin{theorem}
+%        Progress Theorem: If $\varnothing \vdash e : t$ then either $e$ is a value or there exists a term $e'$ such that $e \hookrightarrow$ e'. (MainTheorems.hs) No significant dependencies.
+%    \end{theorem}
+
+%    \begin{theorem}
+%        Preservation Theorem: If $\varnothing \vdash e : t$ and $e \hookrightarrow e'$, then $\varnothing \vdash e' : t$. (MainTheorems.hs)  Our ${\tt thm\_preservation}$ depends on ${\tt lem\_sem\_det}$, ${\tt lem\_value\_stuck}$, ${\tt lem\_subst\_typ}$, ${\tt lem\_invert\_tabs}$, ${\tt lem\_invert\_tabst}$, ${\tt lem\_delta\_typ}$, ${\tt lem\_detaT\_typ}$, and ${\tt thm\_progress}$.
+%    \end{theorem}
+
+\begin{comment}
+\section{Subtyping and Entailments}
+
+In order to prove the substitution lemma (\Cref{lem:subst})
+for the subtyping judgments, the case of \sBase requires
+us to prove a corresponding lemma for entailment judgments.
+
+\begin{lemma} (Entailment Substitution) \label{lem:entail-base}
+    \begin{enumerate}
+        \item If $\entails{\tcenv',\bind{x}{t_x},\tcenv}{p}$,
+                 $\isWellFormedE{\tcenv',\bind{x}{t_x},\tcenv}$,
+            and $\hastype{\tcenv}{v_x}{t_x}$,
+            then $\entails{\subst{\tcenv'}{x}{v_x},\tcenv}{\subst{p}{x}{v_x}}$.
+            %(SubstitutionLemmaEnt.hs) This one uses ${\tt lem\_denote\_sound\_typ}$ \\
+        \item If $\entails{\tcenv',\bind{\al}{\skind},\tcenv}{p}$,
+                 $\isWellFormedE{\tcenv',\bind{\al}{\skind},\tcenv}$,
+            and $\hastype{\tcenv}{t_\al}{\skind}$,
+            then $\entails{\subst{\tcenv'}{\al}{t_\al},\tcenv}{\subst{p}{\al}{t_\al}]}$.
+            %(SubstitutionLemmaEntTV.hs) \\
+    \end{enumerate}
+\end{lemma}
+
+The proof of the above lemma depends
+on Denotational Soundness (\Cref{lem:denote-sound-first})
+to prove the particular statement about denotations
+in the antecedent of rule \entPred holds under substitution.
+%
+Specifically, we are given the statement
+$\foralltheta{\theta}{\tcenv',\bind{x}{t_x},\tcenv}
+    \Rightarrow \evalsTo{\theta(p)}{\ttrue}$
+and we need to show the statement
+$\foralltheta{\theta'}{\subst{\tcenv'}{x}{v_x},\tcenv}
+    \Rightarrow \evalsTo{\theta'(\subst{p}{x}{v_x})}{\ttrue}$ holds.
+The second statement is a special case of the first;
+for any appropriate $\theta'$ and $v_x$, the closing substitution
+$\theta \defeq (\theta', x\mapsto v_x)$ is appropriate to the first statement.
+%
+The proof hinges on Denotational Soundness,
+described below, which gives us $v_x \in \denote{\theta'(t_x)}$
+and on the commutativity of substitution
+($v_x$ is a closed value and so has no variables appearing in it).
 
 \end{comment}
