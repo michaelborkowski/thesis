@@ -38,11 +38,12 @@ in the way fresh names are introduced in the antecedents of rules.
 For example, below we present the standard (on the left)
 and our (on the right) rules for type abstraction.
 $$
+\hspace{-0.60in}
 \inferrule*[Right=\tAbsEx]
     {\notmem{\al'}{\tcenv} \;\;
       \hastype{\bind{\al'}{\skind},\tcenv}{\subst{\sexpr}{\al}{\al'}}{\subst{\stype}{\al}{\al'}} }
     {\hastype{\tcenv}{\tabs{\al}{\skind}{\sexpr}}{\polytype{\al}{\skind}{\stype}}}
-\qquad\qquad
+\qquad\qquad\qquad
 \inferrule*[Right=\tTAbs]
     {\forall\notmem{\al'}{L}. \;\;
       \hastype{\bind{\al'}{\skind},\tcenv}{\subst{\sexpr}{\al}{\al'}}{\subst{\stype}{\al}{\al'}} }
@@ -388,13 +389,13 @@ for the $\sysrf$ extensions.
          \greybox{\isWellFormed{\tcenv}{\stype}{\skind}}}
         {\hastype{\tcenv}{x}{\greybox{\self{\whitebox{\stype}}{x}{\skind}}}}
         {\tVar}
-    \quad
+    \\
     \inferrule%*[Right=\tAnn]
     {\hastype{\tcenv}{\sexpr}{\stype} \\\\
      \greybox{\isWellFormed{\tcenv}{\stype}{\skind}}}
     {\hastype{\tcenv}{\tyann{\sexpr}{\stype}}{\stype}}
     {\tAnn}
-        \quad
+    \quad
         \greybox{
           \inferrule% *[Right=\;\;\tSub]
           {
@@ -424,7 +425,7 @@ for the $\sysrf$ extensions.
         {\hastype{\tcenv}{\vabs{x}{\sexpr}}{\greybox{x\!}\!\functype{}{\stype_x}{\stype}}}
         {\tAbs}
     %
-    \quad
+    \\
     %
         \inferrule% *[Right=\tTAbs]
         {\forall\notmem{\al'}{\tcenv}.\\\\
@@ -441,7 +442,7 @@ for the $\sysrf$ extensions.
         }
         {\hastype{\tcenv}{\tyapp{\sexpr}{t}}{\subst{s}{\al}{t}}}
         {\tTApp}
-    \quad    
+    \\   
     %
         \inferrule% *[Right=\tLet]
         {\hastype{\tcenv}{\sexpr_x}{\stype_x} \\
@@ -484,17 +485,17 @@ examples of the $\ty{\sconst}$ definition.
 %
 {\small
 $$\begin{array}{rclrcl}
-\ty{\ttrue} & \defeq & \breft{\tbool}{x}{x = \ttrue} &
+\ty{\ttrue} & \!\!\defeq\!\! & \breft{\tbool}{x}{x = \ttrue} &
 %&  \ty{\tfalse} & \defeq& \breft{\tbool}{x}{x = \tfalse} \\
 %\ty{3} & \defeq& \breft{\tint}{x}{x = 3} \\
 %&  \ty{n} & \defeq& \breft{\tint}{x}{x = n} \\
- \ty{\wedge} & \defeq & \functype{x}{\tbool}{\functype{y}{\tbool}{\breft{\tbool}{v}{v = x \wedge y}}} \\
+ \ty{\wedge} & \!\!\defeq\!\! & \functype{x}{\tbool}{\functype{y}{\tbool}{\breft{\tbool}{v}{v = x \wedge y}}} \\
 %  \ty{\neg} & \defeq & \functype{x}{\tbool}{\breft{\tbool}{y}{y = \neg x}} \\
-\ty{3} & \defeq& \breft{\tint}{x}{x = 3} &
-\ty{\leq} & \defeq & \polytype{\al}{\skbase}{\functype{x}{\al}{\functype{y}{\al}{\breft{\tbool}{v}{v = (x \leq y)}}}} \\
-\ty{m\!\!\leq} & \defeq & \functype{y}{\tint}{\breft{\tbool}{v}{v = (m \leq y)}} & 
+\ty{3} & \!\!\defeq\!\!& \breft{\tint}{x}{x = 3} &
+\ty{\leq} & \!\!\defeq\!\! & \polytype{\al}{\skbase}{\functype{x}{\al}{\functype{y}{\al}{\breft{\tbool}{v}{v = (x \leq y)}}}} \\
+\ty{m\!\!\leq} & \!\!\defeq\!\! & \functype{y}{\tint}{\breft{\tbool}{v}{v = (m \leq y)}} & 
 % \ty{m\!\!\leq} \defeq&\; \functype{n}{\tint}{\breft{\tbool}{v}{v = (m \leq n)}} \\
-\ty{=} & \defeq & \polytype{\tvar}{\skbase}{\functype{x}{\al}{\functype{y}{\al}{\breft{\tbool}{v}{v = (x = y)}}}}
+\ty{=} & \!\!\defeq\!\! & \polytype{\tvar}{\skbase}{\functype{x}{\al}{\functype{y}{\al}{\breft{\tbool}{v}{v = (x = y)}}}}
 \end{array}$$
 }
 We note that the $=$ used in the refinements is the polymorphic
@@ -702,6 +703,14 @@ and is used in the subsumption typing rule \tSub (of~\Cref{fig:typing}).
 \judgementHead{Subtyping}{\isSubType{\tcenv}{s}{t}}
 
 \begin{mathpar}   %%%%%%%%%%%%%%%%%% SUBTYPING %%%%%%%%%%%%%%%%%%
+%
+  \inferrule*[Right=\sBase]
+  {\forall\notmem{y}{\tcenv}. \quad
+    \imply{\bind{y}{{\sbase}},\tcenv}{\subst{p_1}{x}{y}}{\subst{p_2}{x}{y}} }
+  {\isSubType{\tcenv}{\breft{\sbase}{x}{\spred_1}}{\breft{\sbase}{x}{\spred_2}}}
+%
+\\
+%  
   \inferrule*[Right=\sFunc]
   { \isSubType{\tcenv}{t_{x2}}{t_{x1}} \quad
     \forall\notmem{y}{\tcenv}. \quad
@@ -732,12 +741,6 @@ and is used in the subsumption typing rule \tSub (of~\Cref{fig:typing}).
     \isSubType{\bind{\al'}{\skind},\tcenv}{\subst{\stype_1}{\al}{\al'}}{\subst{\stype_2}{\al}{\al'}} }
   {\isSubType{\tcenv}{\polytype{\al}{\skind}{\stype_1}}{\polytype{\al}{\skind}{\stype_2}}}
 %
-\and
-%
-  \inferrule*[Right=\sBase]
-  {\forall\notmem{y}{\tcenv}. \quad
-    \imply{\bind{y}{{\sbase}},\tcenv}{\subst{p_1}{x}{y}}{\subst{p_2}{x}{y}} }
-  {\isSubType{\tcenv}{\breft{\sbase}{x}{\spred_1}}{\breft{\sbase}{x}{\spred_2}}}
 \end{mathpar}
 \vspace{-0.00cm}
 \caption{Subtyping Rules.}

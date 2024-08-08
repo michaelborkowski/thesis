@@ -383,6 +383,7 @@ or by changing the form of rule \tSwitch as we did.
         {\tCons}
     \\    
     %
+    {\small
         \inferrule
         {\hastype{\tcenv}{\sexpr}{\tlist{\stype}\greybox{\breft{}{x}{\spred}}} \\
          \isWellFormed{\tcenv}{\stype'}{\skind} \\\\
@@ -397,7 +398,8 @@ or by changing the form of rule \tSwitch as we did.
             {\sexpr_c}{\funcftype{\stype}{\funcftype{\tlist{\stype}\greybox{\breft{}{\vv}{\len y = \len \vv}}}{\stype'}}}
         }
         {\hastype{\tcenv}{\eswitch{\sexpr}{\sexpr_n}{\sexpr_c}}{\stype'}}
-        {\tSwitch}        
+        {\tSwitch} 
+    }       
     \end{mathpar}
 %  }
 \vspace{-0.00cm}

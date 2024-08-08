@@ -88,6 +88,8 @@ With this refined interface, out-of-bounds indexing is statically ruled out:
 \end{code}
 
 \mypara{Functional Correctness}
+\label{sec:overview:primes}
+%
 Refinement types are also used to ensure that the program has the intended behavior.
 To achieve this, we use uninterpreted functions to \textit{specify} behaviors
 and rely on the type system to propagate them.
@@ -241,7 +243,7 @@ type of the argument and the \sBase rule to
 check that $4$ is a valid index
 by checking the validity of the formula $\forall \vv.\ \vv = 4 \Rightarrow \vv < 10$.
 
-$${\small
+$${\footnotesize
 \inferrule%*[Right=\tApp]
 {
     \inferrule%*[Right=\tVar]
@@ -371,7 +373,7 @@ $$
     \hastype{\tcenv}{f}{\functype{x}{\stype_x}{t}} \qquad \hastype{\tcenv}{e}{\stype_x}
  }{
     \hastype{\tcenv}{\app{f}{e}}{\stype\subst{}{x}{e}}
-}{\rulename{TApp-Exact}} \qquad\qquad
+}{\rulename{TApp-Exact}} \qquad\quad
 \inferrule%*[Right=\rulename{TApp-Exists}]
 {
     \hastype{\tcenv}{f}{\functype{x}{\stype_x}{t}} \qquad \hastype{\tcenv}{e}{\stype_x}

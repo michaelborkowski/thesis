@@ -309,17 +309,17 @@ of the function arrow clear.
         { }
           {\app{(\vabs{x}{\sexpr})}{\sval} \step \subst{\sexpr}{x}{\sval}}
           {\eAppAbs} 
-          \quad
+          \\
           \inferrule%*[Right=\eTAppAbs]
           { }
           {\tyapp{(\tabs{\tvar}{\skind}{\sexpr})}{\stype} \step \subst{\sexpr}{\tvar}{\stype}}
           {\eTAppAbs} 
-        \\
+        \quad
         \inferrule%*[Right=\eTApp]
         {\sexpr \step \sexpr'}
         {\tyapp{\sexpr}{t} \step \tyapp{\sexpr'}{t}}
         {\eTApp} 
-        \quad
+        \\
         \inferrule% *[Right=\eLet]
           { \sexpr_x \step \sexpr'_x}
           {\eletin{x}{\sexpr_x}{\sexpr} \step \eletin{x}{\sexpr'_x}{\sexpr}}

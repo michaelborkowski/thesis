@@ -125,7 +125,70 @@ Professor Cormac Flanagan\\
 %  the OGS Formatting Manual for more information.
 %
 \begin{acknowledgements}
- Thanks to . .
+    %
+    First, I would like to thank Ranjit Jhala for all of his support as
+    my advisor. 
+    %
+    I am greatly indebted to Ranjit for taking me on as his student when I 
+    was a complete beginner at type theory and software verification
+    research.
+    %
+    He provided the original motiviation for my work in his 2019 
+    graduate class on \lh, and I've been hooked on theorem proving ever since.
+    % 
+    I appreciate Ranjit's insights and feedback during our 
+    meetings and, most of all, his continuing confidence in my work 
+    throughout four conference rejections motivated me to keep improving 
+    and adding to our work.
+    %
+
+    I would also like to thank my collaborator and coauthor Niki Vazou
+    for all of her patient help, support, and ideas. I couldn't have 
+    done this research without her support either!
+    %
+    I want to thank each of the members of my committee, Nadia Polikarpova,
+    Victor Vianu, Sam Buss, and Cormac Flanagan for their support through 
+    this process and for the opportunity to TA
+    for some of their classes as well.
+
+    I want to thank my wife Ashley and our sons Kiyoshi, Daikichi,
+    and Zygmunt for their patience and support for the many hours that
+    I spent 
+    away from them working on the mechanizations and on this dissertation.
+
+    I want to thank my fellow PL students for many helpful conversations, 
+    and especially Saketh Kasibatla, Kyle Thompson, and Cole Kurashige
+    for helpful conversations about \coq and theorem proving.
+    %
+    I also thank James Parker for a helpful discussion 
+    about data propositions and the anonymous reviewers across five 
+    conferences for their useful comments and suggestions. 
+    %
+    I owe a debt of gratitude to Joe Politz and Sorin Lerner for detailed
+    comments and feedback on an early version of my POPL 24 talk.
+    %
+
+    \section*{Work adapted in this dissertation}
+
+    Chapters 1-3, 5-8, and the conclusion are adapted from 
+    ``Mechanizing Refinement Types'' in the proceedings of the 
+    $51^{st}$ ACM SIGPLAN Symposium on Principles of Programming
+    Languages (POPL 2024), by Michael Borkowski, Niki Vazou, and
+    Ranjit Jhala.
+    
+    Chapter 4 is adapted from unpublished material that was originally
+    prepared for the same  ``Mechanizing Refinement Types''
+    by Michael Borkowski, Niki Vzou, and Ranjit Jhala but did not 
+    appear in the final published version.
+
+    Chapter 9 describes unpublished work done in collaboration with Ranjit Jhala.
+
+    Appendix A contains unpublished work done to accompany a
+    future archival version of ``Mechanizing Refinement Types.''
+
+    The dissertation author was the primary investigator and author of these works.
+
+
 \end{acknowledgements}
 
 
@@ -152,7 +215,45 @@ Professor Cormac Flanagan\\
 %   The abstract may continue to a second page if necessary.
 %
 \begin{abstract}
-  This dissertation will be abstract.
+    Practical checkers based on refinement types
+    use the combination of implicit semantic subtyping
+    and parametric polymorphism to simplify the specification
+    and automate the verification of sophisticated properties
+    of programs.
+    %
+    However, a formal metatheoretic accounting
+    of the \emph{soundness} of refinement type
+    systems using this combination has proved elusive.
+    %
+    We present \sysrf, a core refinement calculus
+    that combines semantic subtyping and parametric
+    polymorphism.
+    %
+    We develop a metatheory for this calculus
+    and prove soundness of the type system.
+    %
+    We give two mechanizations
+    of our metatheory.
+    %
+    First, we introduce \textit{data propositions}, 
+    a novel feature that enables encoding derivation 
+    trees for inductively defined judgments as refined 
+    data types, and use them to show that \lh's refinement
+    types can be used \emph{for} mechanization.
+    %
+    Second, we mechanize our results in \coq, which 
+    comes with stronger soundness guarantees than \lh, 
+    thereby laying the foundations for mechanizing the 
+    metatheory \emph{of} \lh.
+    %
+    Finally, we present an extension \sysrfd, which adds
+    lists and a length measure. We extend the metatheory
+    to prove the soundness of the extended type system
+    and give another mechanization in \coq.
+    %
+    % TODO: if i add any bidirectional material add another
+    % sentence
+    
 \end{abstract}
 
 

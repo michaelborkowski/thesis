@@ -151,23 +151,24 @@ rules for typing in Figure \ref{fig:ft}.
       %
       \quad
       %
+      \inferrule% *[Right=\tTApp]
+      {
+        \isWFFT{\tcenv}{\forgetreft{\stype}}{\skind}\\\\
+        \hastype{\tcenv}{\sexpr}{\polytype{\al}{\skind}{\sftype'}}
+      }
+      {\hastype{\tcenv}{\tyapp{\sexpr}{\stype}}
+          {\subst{\sftype'}{\al}{\forgetreft{\stype}}}}
+      {\fTApp}
+      %
+      \and
+      %
           \inferrule% *[Right=\tTAbs]
           {\forall\notmem{\al'}{\tcenv}.\\\\
           \hastype{\bind{\al'}{\skind},\tcenv}{\subst{\sexpr}{\al}{\al'}}{\subst{\sftype}{\al}{\al'}}
           }
           {\hastype{\tcenv}{\tabs{\al}{\skind}{\sexpr}}{\polytype{\al}{\skind}{\sftype}}}
           {\fTAbs}
-          \and
-      %
-          \inferrule% *[Right=\tTApp]
-          {
-            \isWFFT{\tcenv}{\forgetreft{\stype}}{\skind}\\\\
-            \hastype{\tcenv}{\sexpr}{\polytype{\al}{\skind}{\sftype'}}
-          }
-          {\hastype{\tcenv}{\tyapp{\sexpr}{\stype}}
-              {\subst{\sftype'}{\al}{\forgetreft{\stype}}}}
-          {\fTApp}
-      \quad    
+      \\    
       %
           \inferrule% *[Right=\tLet]
           {\hastype{\tcenv}{\sexpr_x}{\sftype_x} \\\\
@@ -177,7 +178,7 @@ rules for typing in Figure \ref{fig:ft}.
             }
           {\hastype{\tcenv}{\eletin{x}{\sexpr_x}{\sexpr}}{\sftype}}
           {\fLet}
-      \quad    
+      \quad  
       %
           \inferrule% *[Right=\tIf]
           {\hastype{\tcenv}{\sexpr}{\tbool} \\
@@ -892,10 +893,10 @@ $\hasftype{\bind{y}{\sftype_1},\tcenv', \bind{\al}{k_{\al}}, \tcenv}
 By the inductive hypothesis, we have that
 $\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
 {\subst{\sexpr_1}{\tvar}{\stype_\tvar}}{\subst{\sftype_1}{\tvar}{\forgetreft{\stype_\tvar}}}$
-and
+and\\
 $\hasftype{\bind{y}{\subst{\sftype_1}{\tvar}{\stype_\tvar}},\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
 {\subst{\sexpr_2}{x}{\stype_\tvar}}{\subst{\sftype}{\tvar}{\forgetreft{\stype_\tvar}}}$.
-Then by rule \fLet we conclude
+Then by rule \fLet we conclude\\
 $\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
 {\eletin{x}{\subst{\sexpr_1}{\tvar}{\stype_\tvar}}{\subst{\sexpr_2}{\tvar}{\stype_\tvar}}}{\subst{\sftype}{\tvar}{\forgetreft{\stype_\tvar}}}$.
 %%
