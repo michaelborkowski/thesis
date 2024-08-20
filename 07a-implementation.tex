@@ -2,6 +2,7 @@
 \label{ch:implementation}
 
 \section{\lh Mechanization}
+\label{sec:implementation:lh}
 
 We mechanized type safety (\Cref{lem:soundness}) 
 of \sysrf in both \coq 8.15.1 and \lh 8.10.7.1
@@ -36,7 +37,7 @@ induction (\S~\ref{impl:proofs}).
   critically dropped the verification time from 10 hours 
   to only 29 minutes (\S\ref{subsec:quantitiative}). 
   Second, we implemented a (\coq-style) strictly-positive-occurrence checker
-  to ensure data propositions are well defined, 
+  to ensure data propositions are well-defined, 
   since early versions of our proof used negative occurrences. 
 
 %
@@ -53,7 +54,7 @@ indeed inhabit the propositions (types).
 \label{subsec:quantitiative}
 
 We provide a mechanically checked
-proof of the type safety in~\S~\ref{sec:soundness}, 
+proof of the type safety in~\S~\ref{sec:soundness:safety}, 
 that only assumes the requirements
 \ref{lem:prim-typing} and \ref{lem:implication}. 
 %
@@ -98,7 +99,7 @@ of $\sysrf$ is
 where free variables are named, but
 bound variables are represented by
 %syntactically distinct 
-deBruijn indices.
+de Bruijn indices.
 %
 Our mechanization still resembles
 the paper and pencil proofs (performed
@@ -147,7 +148,7 @@ substitution (\Cref{fig:type-subst}).
 %
 \end{fullversion}
 
-\Cref{fig:empirical} summarizes the development 
+Table \ref{fig:empirical} summarizes the development 
 of our metatheory,
 which was checked using \lh 8.10.7.1
 and a Lenovo ThinkPad T15p laptop with
@@ -155,7 +156,7 @@ an Intel Core i7-11800H processor.
 %with 8 physical cores and 32 GB of RAM.
 %
 Our mechanized proofs are substantial. The entire
-\lh development comprises over 12,800 lines \NV{CHECK these numbers are outdated? cannot find them in the table}
+\lh development comprises over 9,300 lines 
 across about 35 files. 
 %
 Currently, the whole \lh proof can be checked
@@ -171,6 +172,16 @@ ergonomics of \lh,
 actionable error messages, remains an important
 direction for future work.
 
+\begin{table}
+\caption{Quantitative mechanization details. We split each development into sets of
+modules pertaining to regions of \Cref{fig:graph} and for each we
+count lines of specification (definitions, lemma statements)
+and of proof.}
+\label{fig:empirical}
+\vspace{0.00cm}
+\begin{tabular}{l}
+\end{tabular}
+\end{table}
 \begin{table}
 % \begin{center}
 \setlength{\tabcolsep}{10pt}
@@ -201,10 +212,4 @@ direction for future work.
 \end{tabular}
 }
 % \end{center}
-\caption{Quantitative mechanization details. We split each development into sets of
-         modules pertaining to regions of \Cref{fig:graph} and for each we
-         count lines of specification (definitions, lemma statements)
-         and of proof.}
-\label{fig:empirical}
-\vspace{-0.00cm}
 \end{table}

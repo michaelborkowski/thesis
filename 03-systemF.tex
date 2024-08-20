@@ -35,7 +35,7 @@ Because the syntax of \sysf is identical to the
 syntax of \sysrf, we have the slight complication
 that refinements still appear in our terms.
 %
-Therefore in this chapter we continue to use $t, t', \ldots$ 
+Therefore, in this chapter we continue to use $t, t', \ldots$ 
 in our definitions and theorems to denote the 
 refined types of \sysrf that will be used
 in type annotations $\tyann{e}{t}$
@@ -53,7 +53,7 @@ The small-step semantics for \sysf are identical to
 those of \sysrf (because the syntax is unchanged),
 but the well-formedness and typing rules consist 
 of those in Figures \ref{fig:wf} and \ref{fig:t}
-with the parts in grey erased.
+with the parts in gray erased.
 %
 For clarity, 
 and to make this chapter self-contained,
@@ -308,7 +308,7 @@ then $\sexpr$ is a value or $\sexpr \step \sexpr'$ for some $\sexpr'$.
   $\sexpr'_2$ such that $\sexpr_2 \step \sexpr'_2$. Then by rule \eAppV
   $e \equiv \app{\vabs{x}{\sexpr_0}}{\sexpr_2} \step \app{\vabs{x}{\sexpr_0}}{\sexpr'_2}$.
   %
-  Third, suppose $\sexpr_1 \equiv \sconst$, a built in primitive 
+  Third, suppose $\sexpr_1 \equiv \sconst$, a built-in primitive 
   and $\sexpr_2$ is a value. Then by rule \ePrim, 
   $e \equiv \app{\sconst}{\sexpr_2} \step \delta(\sconst,\sexpr_2)$,
   which is well-defined by the Primitives Lemma (\ref{lem:primitivesF}).
@@ -338,12 +338,12 @@ then $\sexpr$ is a value or $\sexpr \step \sexpr'$ for some $\sexpr'$.
   $\sexpr \equiv \tyapp{\tabs{\tvar'}{\skind'}{\sexpr_0}}{\stype} 
   \step \subst{\sexpr_0}{\tvar'}{\stype}$.
   %
-  Second, suppose $\sexpr_1 \equiv \sconst$, a built in primitive.
+  Second, suppose $\sexpr_1 \equiv \sconst$, a built-in primitive.
   Then by rule \eTPrim, 
   $\sexpr \equiv  \tyapp{\sconst}{\stype} \step \delta_T(\sconst,\forgetreft{\stype})$,
   which is well-defined by the Primitives Lemma (\ref{lem:primitivesF}).
   %
-  Finally, by the Canonical Forms Lemma (\ref{canonicalF}), 
+  Finally, by the Canonical Forms Lemma (\ref{lem:canonicalF}), 
   $\sexpr_1$ cannot be any other
   form of value, so it must not be a value. 
   Then by the inductive hypothesis,
@@ -373,7 +373,7 @@ then $\sexpr$ is a value or $\sexpr \step \sexpr'$ for some $\sexpr'$.
   In the former case, by rule \eAnnV, 
   $e \equiv \tyann{\sexpr_1}{\stype} \step \sexpr_1$.
   In the latter case, rule \eAnn gives us 
-  $e \equiv \tyann{\sexpr_1}{\stype} step \tyann{\sexpr'_1}{\stype}$.
+  $e \equiv \tyann{\sexpr_1}{\stype} \step \tyann{\sexpr'_1}{\stype}$.
    %%
    \pfcase{\fIf}: We have 
    $\hasftype{\varnothing}{\sexpr}{\sftype}$ where
@@ -433,7 +433,7 @@ is trivial because the typing relation is syntax-directed.
 \end{proof}
 
 We note that 
-Lemma \ref{lem:canonicalF-a} is sufficient for our $\sysrf$ metatheory.
+Lemma \ref{lem:canonicalF} is sufficient for our $\sysrf$ metatheory.
 Our syntactic typing judgments in $\sysrf$ respect those of $\sysf$.
 Specifically, if $\hastype{\tcenv}{\sexpr}{\stype}$ and 
 $\isWellFormedE{\tcenv}$, then
@@ -567,7 +567,7 @@ then $\hasftype{\varnothing}{\sexpr'}{\sftype}$.
   %
   For applications of primitives, preservation 
   requires the Primitives~\Cref{lem:primitivesF},
-  while the general case needs a Substitution~\Cref{lem:substitutionF}.
+  while the general case needs a Substitution~\Cref{lem:substitutionFF}.
   %
   We now give the full details of the other five cases:
 
@@ -604,7 +604,7 @@ then $\hasftype{\varnothing}{\sexpr'}{\sftype}$.
   $\hasftype{\varnothing}{\app{\sexpr_1}{\sexpr'_2}}{\sftype}$
   as desired.
   %
-  Third, suppose $\sexpr_1 \equiv \sconst$, a built in primitive, 
+  Third, suppose $\sexpr_1 \equiv \sconst$, a built-in primitive, 
   and $\sexpr_2$ is a value. Then by rule \ePrim
   and the determinism of the semantics, 
   $e' \equiv \delta(\sconst,\sexpr_2)$.
@@ -643,9 +643,9 @@ then $\hasftype{\varnothing}{\sexpr'}{\sftype}$.
   through for $\tvar$  gives us 
   $\hasftype{\varnothing}{\subst{\sexpr_0}{\tvar}{\stype}}{\subst{\sigma}{\tvar}{\forgetreft{\stype}}}$ as desired.
   %
-  Second, suppose $\sexpr_1 \equiv \sconst$, a built in primitive.
+  Second, suppose $\sexpr_1 \equiv \sconst$, a built-in primitive.
   Then by rule \eTPrim and the determinism of the semantics, 
-  $\sexpr' \delta_T(\sconst,\forgetreft{\stype})$. By the primitives lemma,
+  $\sexpr' \equiv \delta_T(\sconst,\forgetreft{\stype})$. By the primitives lemma,
   $\hasftype{\varnothing}{\delta_T(\sconst,\forgetreft{\stype})}{\subst{\sigma}{\tvar}{\forgetreft{\stype}}}$.
   %
   Finally, by the canonical forms lemma, $\sexpr_1$ cannot be any other
@@ -720,7 +720,7 @@ then $\hasftype{\varnothing}{\sexpr'}{\sftype}$.
   In either case we can immediately conclude that $\sexpr'$
   has the desired type.
   %
-  In the latter case above,rule \eIf and determinism give us, 
+  In the latter case above, rule \eIf and determinism give us, 
   $\sexpr' \equiv \eif{\sexpr'_0}{\sexpr'_1}{\sexpr_2}$.
   By the inductive hypothesis we have that 
   $\hasftype{\varnothing}{\sexpr'_0}{\tbool}$ and by rule \fIf 
@@ -738,7 +738,7 @@ inferring the last rule used to type a term or type abstraction.
 %
 Furthermore, in case \tApp the substitution lemma would give us that 
 $\hastype{\varnothing}{\sexpr'}{\subst{\stype}{x}{\sval_x}}$ for 
-some value $\sval_x$. However we need to show preservation of the
+some value $\sval_x$. However, we need to show preservation of the
 existential type $\existype{x}{\stype_x}{\stype}$. This is done by
 using rule \sWitn to show that, in fact, 
 $\isSubType{\varnothing}{\subst{\stype}{x}{\sval_x}}{\existype{x}{\stype_x}{\stype}}$.
@@ -781,23 +781,23 @@ and $\isWFFT{\tcenv}{\forgetreft{\stype_{\al}}}{k_{\al}}$, then
   %%
   \pfcase{\fVar}: We have $\sexpr \equiv x$; by inversion, we get that 
   $\bind{x}{\sftype} \in \tcenv', \bind{\al}{k_{\al}}, \tcenv$. We must have
-  $\tvar \neq x$ so there are two cases to consider for where $x$ can 
+  $\tvar \neq x$, so there are two cases to consider for where $x$ can 
   appear in the environment. If $\bind{x}{\sftype} \in \tcenv$,  then $\sftype$
   cannot contain $\tvar$ as a free variable because $x$ is bound first in the environment (which grows from right to left). Then
   $\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}{x}{\sftype}$
   as desired because $\subst{\sftype}{\tvar}{\forgetreft{\stype_{\al}}} = \sftype$.
-  Otherwise $\bind{x}{\sftype} \in \tcenv'$ and so 
+  Otherwise, $\bind{x}{\sftype} \in \tcenv'$ and so 
   $\bind{x}{\subst{\sftype}{\tvar}{\forgetreft{\stype_{\al}}}} \in \subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv$. Thus
   $\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}{x}{\subst{\sftype}{\tvar}{\forgetreft{\stype_{\al}}}}$.
   %
   (In part (1), we have an additional case where 
   $\hasftype{\tcenv', \bind{x}{\sftype}, \tcenv}{x}{\sftype}$. We have
-  $\subst{x}{x}{\sval_x} = \sval_x$ and so we can apply 
+  $\subst{x}{x}{\sval_x} = \sval_x$, and so we can apply 
   the Weakening Lemma (\ref{lem:weakeningF})
   to $\hasftype{\tcenv}{\sval_x}{\sftype}$ to obtain
   $\hasftype{\tcenv', \tcenv}{\sval_x}{\sftype}$.)
   %%
-  \pfcase{\fApp}: We have $\sexpr \equiv \app{\sexpr_1}{\sexpr_2}$. By inversion
+  \pfcase{\fApp}: We have $\sexpr \equiv \app{\sexpr_1}{\sexpr_2}$. By inversion,
   we have that
   $\hasftype{\tcenv', \bind{\al}{k_{\al}}, \tcenv}{\sexpr_1}{\funcftype{\sftype_x}{\sftype}}$
   and $\hasftype{\tcenv', \bind{\al}{k_{\al}}, \tcenv}{\sexpr_2}{\sftype_x}$.
@@ -867,22 +867,55 @@ and $\isWFFT{\tcenv}{\forgetreft{\stype_{\al}}}{k_{\al}}$, then
     {\subst{\sexpr}{\al}{\stype_{\al}}}
     {\subst{\sftype}{\al}{\forgetreft{\stype_{\al}}}}$.
   %%
-  \pfcase{\fTAbs}: TODO typesetting
+  \pfcase{\fTAbs}: 
   %%
-%{\bf Case} {\sc T-AbsT}:We have $\Gamma', x:t_x,\Gamma \vdash e : t$ where $e \equiv \Lambda \al:k. e'$ and $t \equiv \polytype{\al}{k}{t'}$. By inversion, $\al'\bind k, \Gamma', x\bind t_x,\Gamma \vdash e'[\al'/\al] : t'[\al'/\al]$ and $\al'\bind k, \Gamma', x\bind t_x,\Gamma \vdash_w t'[\al'/\al] : k'$ for some $\al'\not\in\dom{\Gamma}$. By the inductive hypothesis
-%\begin{equation}
-%\al'\bind k, \Gamma'[v_x/x],\Gamma \vdash e'[\al'/\al][v_x/x] : t'[\al'/\al][v_x/x] \;\;{\rm and}\;\; \al'\bind k, \Gamma'[v_x/x],\Gamma \vdash_w t'[\al'/\al][v_x/x] : k'.
-%\end{equation}
-%We must have $x\neq \al'$ and we have $x \neq \al$ because bound and free variables are taken to be distinct. Moreover, $v_x$ contains only free variables from $\Gamma$, so $e'[\al'/\al][v_x/x] = e'[v_x/x][\al'/\al]$ and $t'[\al'/\al][v_x/x] = t'[v_x/x][\al'/\al]$. Then by rule {\sc T-AbsT}
-%\begin{equation}
-%\Gamma'[v_x/x], \Gamma' \vdash \Lambda \al:k.(e'[v_x/x]) : \polytype{\al}{k}{t'[v_x/x]}.
-%\end{equation}
-%By definition of substitution, we can rewrite the above as
-%\[
-%\Gamma'[v_x/x],\Gamma \vdash (\Lambda \al:k.e')[v_x/x] : \polytype{\al}{k}{t'}[v_x/x].
-%\]
-%In the type variable substitution lemma, where we have an environment $\Gamma',\beta\bind k_\beta,\Gamma$ and $\Gamma \vdash_w t_\beta : k_\beta$ this proof is similar except that we argue that $e'[\al'/\al][t_\beta/\beta] = e'[t_\beta/\beta][\al'/\al]$ and $t'[\al'/\al][t_\beta/\beta] = t'[t_\beta/\beta][\al'/\al]$ because $\al'\neq\beta$ and only free variables from $\Gamma$ may appear in $t_\beta$.
-
+  We have $\hasftype{\tcenv', \bind{\al}{k_{\al}}, \tcenv}{\sexpr}{\sftype}$ 
+  where $e \equiv \tabs{\al_0}{k'}{\sexpr'}$ 
+  and $\sftype \equiv \polytype{\al_0}{k'}{\sftype'}$. 
+  %
+  By inversion, for any fresh type variable $\al'$,
+  $\hasftype{\bind{\al'}{k'}, \tcenv', \bind{\al}{k_{\al}}, \tcenv}
+        {\subst{\sexpr'}{\al_0}{\al'}}{\subst{\sftype'}{\al_0}{\al'}}$ and 
+  $\isWFFT{\bind{\al'}{k'}, \tcenv', \bind{\al}{k_{\al}}, \tcenv}
+        {\subst{\sftype'}{\al_0}{\al'}}{k'}$. 
+  %      
+  By the inductive hypothesis
+  \begin{equation*}
+  \hasftype{\bind{\al'}{k'}, \subst{\tcenv'}{\al}{\forgetreft{t_{\al}}}, \tcenv}
+    {\subst{\subst{\sexpr'}{\al_0}{\al'}}{\al}{t_{\al}}}
+    {\subst{\subst{\sftype'}{\al_0}{\al'}}{\al}{\forgetreft{t_{\al}}}}
+  \end{equation*}
+  and by the Substitution Lemma for $\sysf$ well-formedness judgments
+  \begin{equation*}
+  \isWFFT{\bind{\al'}{k'}, \subst{\tcenv'}{\al}{\forgetreft{t_{\al}}}, \tcenv}
+    {\subst{\subst{\sftype'}{\al_0}{\al'}}{\al}{\forgetreft{t_{\al}}}}
+    {k'}.
+  \end{equation*}
+  %
+  Because $\al'$ is chosen to be fresh, we must have $\al\neq \al'$
+  and $\al_0\neq\al'$. 
+  %
+  Moreover, $\forgetreft{t_{\al}}$ contains only free variables from $\Gamma$, 
+  so $\subst{\subst{\sexpr'}{\al_0}{\al'}}{\al}{t_{\al}} = 
+        \subst{\subst{\sexpr'}{\al}{t_{\al}}}{\al_0}{\al'}$ 
+  and $\subst{\subst{\sftype'}{\al_0}{\al'}}{\al}{\forgetreft{t_{\al}}} = 
+        \subst{\subst{\sftype'}{\al}{\forgetreft{t_{\al}}}}{\al_0}{\al'}$. 
+  %
+  Then by rule \fTAbs,
+  \begin{equation*}
+  \hasftype{\subst{\tcenv'}{\al}{\forgetreft{t_{\al}}}, \tcenv}
+    {\tabs{\al_0}{k'}({\subst{\sexpr'}{\al}{t_{\al}}})}
+    {\polytype{\al_0}{k'}({\subst{\sftype'}{\al}{\forgetreft{t_{\al}}}})}.
+  \end{equation*}
+  %
+  By definition of substitution, we can rewrite the above as
+  \begin{equation*}
+    \hasftype{\subst{\tcenv'}{\al}{\forgetreft{t_{\al}}}, \tcenv}
+    {\subst{(\tabs{\al_0}{k'}{\sexpr'})}{\al}{t_{\al}}}
+    {\subst{(\polytype{\al_0}{k'}{\sftype'})}{\al}{\forgetreft{t_{\al}}}}
+  \end{equation*}
+  %
+  as desired.
 %% 
 \pfcase{\fLet}: We have $\sexpr \equiv \eletin{x}{\sexpr_1}{\sexpr_2}$
 and by inversion we have that for some type $\sftype_1$,
@@ -909,14 +942,45 @@ $\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
 {\subst{\sexpr'}{\tvar}{\stype_\tvar}}{\subst{\sftype}{\tvar}{\forgetreft{\stype_\tvar}}}$.
 By our definition of refinement erasure, we have
 $\forgetreft{\subst{\stype}{\tvar}{\stype_\tvar}}
- = \subst{\forgetreft{\stype}}{\tvar}{\forgetreft{\stype_\tvar}}$
+ = \subst{\forgetreft{\stype}}{\tvar}{\forgetreft{\stype_\tvar}}$,
 and we have 
 $\subst{\tyann{\sexpr'}{\stype}}{\tvar}{\stype_\tvar} 
  = \tyann{\subst{\sexpr'}{\tvar}{\stype_\tvar}}{\subst{\stype}{\tvar}{\stype_\tvar}}$. Thus by rule \fAnn,
 $\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
 {\subst{\tyann{\sexpr'}{\stype}}{\tvar}{\stype_\tvar}}{\subst{\forgetreft{\stype}}{\tvar}{\forgetreft{\stype_\tvar}}}$.
 %%
-\pfcase{\fIf}: TODO Typesetting
+\pfcase{\fIf}: We have $\sexpr \equiv \eif{\sexpr_0}{\sexpr_1}{\sexpr_2}$ 
+and by inversion we have that 
+$\hasftype{\tcenv', \bind{\al}{k_{\al}}, \tcenv}{\sexpr_0}{\tbool}$ 
+and
+$\hasftype{\tcenv', \bind{\al}{k_{\al}}, \tcenv}{\sexpr_1}{\sftype}$
+and 
+$\hasftype{\tcenv', \bind{\al}{k_{\al}}, \tcenv}{\sexpr_2}{\sftype}$.
+By the inductive hypothesis, we have
+$\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
+  {\subst{\sexpr_0}{\tvar}{\stype_\tvar}}
+  {\tbool}$
+and
+$\hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
+  {\subst{\sexpr_i}{\tvar}{\stype_\tvar}}
+  {\subst{\sftype}{\tvar}{\forgetreft{\stype_\tvar}}}$
+for each $i = 1, 2$.
+%
+Then by rule \fIf we have
+\begin{equation*}
+  \hasftype{\subst{\tcenv'}{\al}{\forgetreft{\stype_{\al}}}, \tcenv}
+    {\eif{\subst{\sexpr_0}{\tvar}{\stype_\tvar}}
+        {\subst{\sexpr_1}{\tvar}{\stype_\tvar}}
+        {\subst{\sexpr_2}{\tvar}{\stype_\tvar}}}
+    {\subst{\sftype}{\tvar}{\forgetreft{\stype_\tvar}}}
+\end{equation*}
+%
+By the definition of substitution, we have the equality
+$\eif{\subst{\sexpr_0}{\tvar}{\stype_\tvar}}
+  {\subst{\sexpr_1}{\tvar}{\stype_\tvar}}
+  {\subst{\sexpr_2}{\tvar}{\stype_\tvar}}
+  = \subst{(\eif{\sexpr_0}{\sexpr_1}{\sexpr_2})}{\tvar}{\stype_\tvar}$,
+which gives us the desired judgment.  
 %%
 \end{proof}  
 
@@ -945,6 +1009,19 @@ then
 %
 The proof is fairly similar to the proof of the Substitution Lemma above,
 and we omit it here.
+
+\section*{Acknowledgements for Chapter 4}
+%
+This chapter is adapted from 
+unpublished material that was originally
+prepared (as an appendix) 
+for ``Mechanizing Refinement Types'' in the proceedings of the 
+$51^{st}$ ACM SIGPLAN Symposium on Principles of Programming
+Languages (POPL 2024), by Michael Borkowski, Niki Vazou, and
+Ranjit Jhala.
+%
+The dissertation author was the primary investigator 
+and author of this material.
 
 
 % \begin{proof}

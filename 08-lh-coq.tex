@@ -77,7 +77,7 @@ describes the free variables of the result.
 %
 \begin{mcode}
   subFV :: x:VName ->vx:{Expr | isVal vx } ->e:Expr
-        ->{e':Expr | fv e' $\subseteq$ (fv vx $\cup$ (fv e \ x)) && (isVal e => isVal e')}
+      ->{e':Expr | fv e' $\subseteq$ (fv vx $\cup$ (fv e \ x)) && (isVal e => isVal e')}
   subFV x vx (EVar y)    = if x == y then vx else EVar y
   subFV x vx (ELam   e)  = ELam (subFV x vx e)
   subFV x vx (EApp e e') = EApp (subFV x vx e) (subFV x vx e')
@@ -160,15 +160,15 @@ by induction on \ha{xs} and SMT automation.
   \begin{figure}[t!]
   \begin{mcode}
 -- Standard Existential Rule
-TAbsEx  :: $\gamma$:Env -> t$_x$:Type -> e:Expr -> t:Type
-        -> y:{VName | y $\not\in$ dom $\gamma$ }
-        -> HasTy ((y,t$_x$):$\gamma$) (unbind y e) (unbindT y t)
-        -> HasTy $\gamma$ (ELam e) (TFunc t$_x$ t)
+TAbsEx :: $\gamma$:Env -> t$_x$:Type -> e:Expr -> t:Type
+       -> y:{VName | y $\not\in$ dom $\gamma$ }
+       -> HasTy ((y,t$_x$):$\gamma$) (unbind y e) (unbindT y t)
+       -> HasTy $\gamma$ (ELam e) (TFunc t$_x$ t)
 
 -- Co-finitely Quantified Rule
-TAbs    :: $\gamma$:Env -> t$_x$:Type -> e:Expr -> t:Type -> l:S.Set VName
-        -> (y:{VName|y $\not\in$ l} -> HasTy ((y,t$_x$):$\gamma$) (unbind y e) (unbindT y t))
-        -> HasTy $\gamma$ (ELam e) (TFunc t$_x$ t)
+TAbs  :: $\gamma$:Env -> t$_x$:Type -> e:Expr -> t:Type -> l:S.Set VName
+      -> (y:{VName|y $\not\in$ l} -> HasTy ((y,t$_x$):$\gamma$) (unbind y e) (unbindT y t))
+      -> HasTy $\gamma$ (ELam e) (TFunc t$_x$ t)
 
 -- Note: All rules also include k$_{\color{gray_ulisses}x}$:Kind -> WfType ${\color{gray_ulisses}\gamma}$ t$_{\color{gray_ulisses}x}$ k$_{\color{gray_ulisses}x}$ elided for clarity.
   \end{mcode}
@@ -446,7 +446,7 @@ proofs as lemmas and constructors can be used with the
 \ha{apply} tactic without writing out all arguments. 
 %
 For example, in \lh 
-safety (thm.~\ref{lem:soundness})
+safety (Theorem~\ref{lem:soundness})
 is encoded using 
 Haskell's \ha{Either}
 for disjunction
@@ -541,14 +541,14 @@ and state the lemma as:
 \begin{mcode}
   Lemma lem_weaken_typ' : ( forall (g0 : env) (e : expr) (t : type),
     HasTy g0 e t ->( forall (g g' : env) (x : vname) (t_x : type),
-        g0 = concatE g g' ->unique g ->unique g' ->
-        (binds g) $\cap $ (binds g') = empty ->~ (in_env x g) ->~ (in_env x g')
-        ->HasTy (concatE (Cons x t_x g) g') e t ) ) /\ (
+       g0 = concatE g g' ->unique g ->unique g' ->
+       (binds g) $\cap $ (binds g') = empty ->~ (in_env x g) ->~ (in_env x g')
+       ->HasTy (concatE (Cons x t_x g) g') e t ) ) /\ (
   forall (g0 : env) (t : type) (t' : type),
     Subtype g0 t t' ->( forall (g g' : env) (x : vname) (t_x : type),
-        g0 = concatE g g' ->unique g ->unique g' -> 
-        (binds g) $\cap $ (binds g') = empty ->~ (in_env x g) ->~ (in_env x g')
-        ->Subtype (concatE (Cons x t_x g) g') t t') ).
+       g0 = concatE g g' ->unique g ->unique g' -> 
+       (binds g) $\cap $ (binds g') = empty ->~ (in_env x g) ->~ (in_env x g')
+       ->Subtype (concatE (Cons x t_x g) g') t t') ).
 \end{mcode}
 %Proof. apply ( judgments_mutind 
 %  (fun (g0 : env) (e : expr) (t : type) (p_e_t : Hastype g0 e t) => 
@@ -657,3 +657,15 @@ agreement proofs would require a \emph{Proof Irrelevance} axiom.
 %subset type is not possible in general sans 
 %a \emph{Proof Irrelevance} axiom \cite{Vazou17}. 
 %
+
+
+\section*{Acknowledgements for Chapter 8}
+%
+This chapter is adapted from 
+``Mechanizing Refinement Types'' in the proceedings of the 
+$51^{st}$ ACM SIGPLAN Symposium on Principles of Programming
+Languages (POPL 2024), by Michael Borkowski, Niki Vazou, and
+Ranjit Jhala.
+%
+The dissertation author was the primary investigator 
+and author of this material.

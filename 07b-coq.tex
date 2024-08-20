@@ -1,9 +1,11 @@
 \section{\coq Mechanization}
 \label{sec:coq}
+\label{sec:implementation:coq}
 
 Our \coq mechanization 
 proves both type safety and
-denotation soundness, \ie all the statements of~\S~\ref{sec:soundness}
+denotation soundness, \ie all the statements of \S~\ref{sec:soundness:denotational}
+and \S~\ref{sec:soundness:safety}
 and serves as a comparison for the metatheoretical 
 development abilities of the two theorem provers. 
 %is a translation from \lh
@@ -41,3 +43,21 @@ as theorem provers, but their mechanizations were an order of magnitude
 smaller than ours and did not use data propositions (\S~\ref{sec:data-props}),
 which permit constructive \lh proofs. 
 
+The source code for our mechanizations in \coq and \lh, 
+together with instructions on how to replicate the results, 
+are available on Zenodo \cite{michael_h_borkowski_2023_8425960}. 
+%
+Additionally, a virtual appliance for Oracle VM VirtualBox 
+is available on Zenodo \cite{michael_h_borkowski_2023_8425176}
+to assist with replication.
+
+\section*{Acknowledgements for Chapter 7}
+%
+This chapter is adapted from 
+``Mechanizing Refinement Types'' in the proceedings of the 
+$51^{st}$ ACM SIGPLAN Symposium on Principles of Programming
+Languages (POPL 2024), by Michael Borkowski, Niki Vazou, and
+Ranjit Jhala.
+%
+The dissertation author was the primary investigator 
+and author of this material.

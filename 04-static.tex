@@ -54,7 +54,7 @@ $$
 The standard rule \tAbsEx requires the \text{existence} of a
 fresh type variable name $\al'$.
 %
-Instead our co-finite quantification rule
+Instead, our co-finite quantification rule
 states that the rule holds for any name excluding
 a finite set of names $L$. %(here the ones that already appear in $\tcenv$).
 %
@@ -74,7 +74,7 @@ says that the type $\stype$ is well-formed in the environment
 $\tcenv$ and has kind $\skind$.
 %
 The judgment $\isWellFormedE{\tcenv}$ says that the
-environment $\tcenv$ is well formed, meaning
+environment $\tcenv$ is well-formed, meaning
 that it only binds to well-formed
 types.
 %
@@ -185,7 +185,7 @@ is well-formed. Rule \wfeBind says that a well-formed environment
 $\tcenv$ remains well-formed after binding a fresh variable $x$ to any
 type $t_x$ that is well-formed in $\tcenv$.
 %
-Finally rule \wfeTBind states that a well-formed environment remains
+Finally, rule \wfeTBind states that a well-formed environment remains
 well-formed after binding a fresh type variable to any kind.
 \end{fullversion}
 
@@ -281,7 +281,7 @@ well-formed after binding a fresh type variable to any kind.
 %}
 \vspace{-0.00cm}
 \caption{Well-formedness of types and environments. The rules for
-  $\sysf$ exclude the grey boxes.}
+  $\sysf$ exclude the gray boxes.}
 \label{fig:wf}
 \label{fig:wfe}
 \vspace{-0.00cm}
@@ -371,7 +371,7 @@ $\tcenv$.
 %
 \Cref{fig:typing} summarizes
 the rules that establish typing for both $\sysf$ and
-$\sysrf$, with grey %boxes
+$\sysrf$, with gray %boxes
 %indicating extensions needed
 for the $\sysrf$ extensions.
 
@@ -471,7 +471,7 @@ for the $\sysrf$ extensions.
 %  }
 \vspace{-0.00cm}
 \caption{Typing rules.
-The judgment $\hasftype{\tcenv}{\sexpr}{\sftype}$ is defined by excluding the grey boxes.}\label{fig:t}\label{fig:typing}
+The judgment $\hasftype{\tcenv}{\sexpr}{\sftype}$ is defined by excluding the gray boxes.}\label{fig:t}\label{fig:typing}
 \vspace{-0.00cm}
 \end{figure}
 
@@ -623,7 +623,7 @@ The use of existential types in rule \tApp
 is one of the distinctive features of our language
 and was introduced by~\citet{Knowles09}.
 %
-As overviewed in \S~\ref{overview:exists},
+As overviewed in \S~\ref{subsec:overview:exists},
 we chose this form of \tApp over the conventional
 form of $\hastype{\tcenv}{\app{\sexpr}{\sexpr_x}}{\subst{\stype}{x}{\sexpr_x}}$
 because our version prevents
@@ -822,7 +822,7 @@ we follow an approach that decouples the mechanization from the implementation.
 Concretely, 
 first we define the interface of the implication (\S~\ref{sec:typing:implication:interface})
 that precisely captures all the requirements that the implication 
-judgement should satisfy to establish the soundness of $\sysrf$. 
+judgment should satisfy to establish the soundness of $\sysrf$. 
 Then, we define two alternative implementations of the interface: 
 a logical implementation (\S~\ref{sec:typing:implication:logical})
 that is used in refinement type implementations 
@@ -900,7 +900,7 @@ substitution (\ref{lem:subst}) lemmas hold in \sysrf.
 Our requirements are very similar to Assumption 1 of~\cite{Knowles09}. 
 Our Strengthening and Subst II cases are required for polymorphism, thus 
 they do not appear in~\citet{Knowles09}'s assumption.  
-Instead they require Consistency and Exact Quantification. 
+Instead, they require Consistency and Exact Quantification. 
 We do not require Exact Quantification since our relation captures 
 the minimum requirements to prove soundness. 
 Instead of explicitly requiring Consistency, 
@@ -908,7 +908,7 @@ in \S~\ref{sec:typing:implication:denotational} we define (and mechanize) an imp
 of the interface thus show our assumptions are consistent. 
 
 
-\subsubsection{Logical Implementation (non mechanized)}
+\subsubsection{Logical Implementation (non-mechanized)}
 \label{sec:typing:implication:logical}
 The logical implementation of \imply{\tcenv}{\spred_1}{\spred_2}
 checks that the logical implication $\spred_1 \Rightarrow \spred_2$
@@ -1014,7 +1014,7 @@ We lift the notion of denotations to environments $\denote{\tcenv}$
 as the set of closing substitutions, \ie value
 and type bindings for the variables in $\tcenv$, such that the
 values respect the denotations of the respective $\tcenv$-bound
-types and the types are well formed with respect
+types and the types are well-formed with respect
 to the corresponding kinds.
 
 
@@ -1049,3 +1049,14 @@ thus it is amicable to mechanization.
 Concretely, we proved (\S~\ref{sec:coq})
 that the denotational implementations satisfies 
 the statements of~\Cref{lem:implication}. 
+
+\section*{Acknowledgements for Chapter 3}
+%
+This chapter is adapted from 
+``Mechanizing Refinement Types'' in the proceedings of the 
+$51^{st}$ ACM SIGPLAN Symposium on Principles of Programming
+Languages (POPL 2024), by Michael Borkowski, Niki Vazou, and
+Ranjit Jhala.
+%
+The dissertation author was the primary investigator 
+and author of this material.

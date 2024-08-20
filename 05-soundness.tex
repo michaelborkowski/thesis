@@ -5,8 +5,9 @@
 \input{graph}
 
 
-Our development for \sysf (\S~\ref{sec:soundness})
-follows the standard presentation of System F's
+Our development of the metatheory 
+for \sysf (\S~\ref{sec:soundnessF})
+followed the standard presentation of System F's
 metatheory by \citet{TAPL}.
 %
 The main difference 
@@ -66,7 +67,7 @@ and narrowing (\S~\ref{sec:soundness:narrowing}) lemmas.
 
 Denotational soundness connects syntactic typing and subtyping 
 with the type denotations (of~\Cref{fig:den}).
-For typing it states that if
+For typing, it states that if
 $\hastype{\tcenv}{e}{t}$,
 then when $e$ is closed by any closing substitution of $\tcenv$
 it evaluates to a value that belongs in the denotation of the closed $t$.
@@ -394,7 +395,7 @@ judgment $\isSubType{\tcenv}{s}{t}$
 is preserved after
 selfification on both types.
 %
-Similarly whenever we can type
+Similarly, whenever we can type
 a value $v$ at type $t$ then we
 also type $v$ at the type $t$
 selfified by $v$.
@@ -413,6 +414,16 @@ selfified by $v$.
 \end{lemma}
 %\NV{Put these two in one line if we need space}
 
+\section*{Acknowledgements for Chapter 5}
+%
+This chapter is adapted from 
+``Mechanizing Refinement Types'' in the proceedings of the 
+$51^{st}$ ACM SIGPLAN Symposium on Principles of Programming
+Languages (POPL 2024), by Michael Borkowski, Niki Vazou, and
+Ranjit Jhala.
+%
+The dissertation author was the primary investigator 
+and author of this material.
 
 
 % REMOVED LEMMAS

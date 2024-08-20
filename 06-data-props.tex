@@ -19,13 +19,13 @@ such as the typing judgment of \sysrf.
 
 \section{\lh}
 \lh's core proof system is \sysrf, 
-that is, it is using the typing judgement 
+that is, it is using the typing judgment 
 presented in Figure~\ref{fig:t} to check whether a Haskell program 
 satisfies its refinement type annotations.
 %
 The expression language checked by \lh is GHC's intermediate language 
 (\coresyn~\cite{coresyn}) which is a superset of \sysrf that also includes 
-literals, datatypes, and coercions. Thus, \lh's typing judgement is extended to 
+literals, datatypes, and coercions. Thus, \lh's typing judgment is extended to 
 include these constructs. 
 %
 To guess the unknown types of Figure~\ref{fig:t} (\ie in the rules \tSub and \tLet)
@@ -153,7 +153,7 @@ The definition stipulates that the type \ha{HasTy $\Gamma$ e t}
 is inhabited by evidence (of type \ha{HasTyEv}) that
 establishes the typing proposition \ha{HasTyPr $\Gamma$ e t}.
 %
-Similarly \ha{IsSubTy $\Gamma$ s t} is inhabited by evidence
+Similarly, \ha{IsSubTy $\Gamma$ s t} is inhabited by evidence
 (of type \ha{IsSubTyEv}) that establishes the subtyping
 proposition \ha{IsSubTyPr $\Gamma$ s t}.
 %
@@ -243,7 +243,7 @@ inductive propositions in
 the mechanization of \sysrf. 
 (\citet{lweb} developed a \lh metatheoretic proof  
 but before data propositions and thus had to axiomatize a terminating 
-evaluation relation; see~\S~\ref{ch:related}.)
+evaluation relation; see~\S~\ref{sec:related}.)
 %
 % \newtext{
 Refined data propositions are implemented as part of \lh's existing 
@@ -258,4 +258,15 @@ of \lh to use existing SMT support to make data constructors \emph{injective},
 \ie if $C$ is a constructor then $\forall x, y.\, C(x) = C(y) => x = y$.
 Thus, refined data types and injectivity are the two required 
 components to implement data propositions.
+
+\section*{Acknowledgements for Chapter 6}
+%
+This chapter is adapted from 
+``Mechanizing Refinement Types'' in the proceedings of the 
+$51^{st}$ ACM SIGPLAN Symposium on Principles of Programming
+Languages (POPL 2024), by Michael Borkowski, Niki Vazou, and
+Ranjit Jhala.
+%
+The dissertation author was the primary investigator 
+and author of this material.
 

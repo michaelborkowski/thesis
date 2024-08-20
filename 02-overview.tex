@@ -195,7 +195,7 @@ functions with positive domains, and any other concept encoded as a refinement t
 
 Next, we develop a minimal calculus \sysrf that shows how
 Refinement type systems enjoy the three essential features
-of \S~\ref{subsec:overview:essence}.
+of \S~\ref{sec:overview:essence}.
 %
 \sysrf has four judgements that relate expressions ($e$),
 types ($t$), kinds ($k$), predicates ($p$), and environments ($\tcenv$):
@@ -511,7 +511,7 @@ substituted by base, refined types.
 The other type variables have kind $\skstar$
 and can only be trivially refined with \ttrue.
 With this kind system, we have a simple
-and convenient way to encode comparable values
+and convenient way to encode comparable values,
 and we can give \ha{max}
 a polymorphic and precise type that
 naturally rejects non-comparable
@@ -551,7 +551,7 @@ In \sysrf, we use the primitive \eerr to denote program errors
 The \eerr primitive neither is a value nor takes a step.
 Thus, if an expression type checks, via type safety, 
 we know that \eerr will not be reached at runtime.
-\Cref{lem:soundness} formally defines type safety 
+\Cref{lem:soundness} formally defines type safety, 
 and it is proved via the preservation and progress lemmas.
 %
 Type safety ensures that programs will not get stuck, but does not ensure that they
@@ -568,7 +568,7 @@ In~\S~\ref{sec:lang:static} we inductively define the denotations of each type a
 \Cref{lem:denote-sound-first} formally encodes denotational soundness.
 %% NEW 
 Combining Lemmas \Cref{lem:soundness} and \Cref{lem:denote-sound-first},
-we see that the a refined \sysrf type that can be checked for a specific program
+we see that the refined \sysrf type that can be checked for a specific program
 is preserved under evaluation, and thus the semantics of the program is 
 preserved under evaluation.
 %%
@@ -639,9 +639,9 @@ require versions for both typing and subtyping, which are proved by mutual induc
 If well-formedness was also included in this circularity (arrow 4),
  then the complexity of the proofs would greatly increase, 
  but would not necessarily be impossible.
-\item Second, circularities are problematic because they can lead to non well-defined systems. 
+\item Second, circularities are problematic because they can lead to non-well-defined systems. 
 Concretely, \citet{Greenberg13} describes an older refinement type system 
-in which typing appeared in the left hand side of subtyping and, as such, 
+in which typing appeared in the left-hand side of subtyping and, as such, 
 it was non-monotonic and thus not well-defined. 
 This situation corresponds to the red arrow 6 in \cref{fig:dependencies}, 
 which would make the proof impossible due to the typing judgment occurring in 
@@ -703,3 +703,14 @@ Once, we have carefully broken the various circularities
 and eliminated potential sources of unsoundness, we get
 unsurprising, albeit strenuous, proofs of the soundness
 of refinement typing.
+
+\section*{Acknowledgements for Chapter 2}
+%
+This chapter is adapted from 
+``Mechanizing Refinement Types'' in the proceedings of the 
+$51^{st}$ ACM SIGPLAN Symposium on Principles of Programming
+Languages (POPL 2024), by Michael Borkowski, Niki Vazou, and
+Ranjit Jhala.
+%
+The dissertation author was the primary investigator 
+and author of this material.

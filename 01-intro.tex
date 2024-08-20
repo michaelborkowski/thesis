@@ -90,7 +90,7 @@ or have problematic metatheory~\citep{Belo11}.
 
 In this dissertation we formalize \sysrf, a core calculus
 with a refinement type system that combines semantic
-subtyping with polymorphism, via six concrete contributions.
+subtyping with polymorphism, via five concrete contributions.
 %
 But first, we begin in \Cref{ch:overview} with an overview 
 of refinement types, giving examples of their applications
@@ -117,7 +117,7 @@ variables that can be soundly refined
 at instantiation) from the rest,
 which are then left unrefined.
 %
-In addition our design includes
+In addition, our design includes
 a form of existential typing \cite{Knowles09}
 which is essential to \emph{synthesize} the types
 -- in the sense of bidirectional typing -- for applications
@@ -159,7 +159,7 @@ where refinements are not required, cutting two potential
 circularities in the static judgments (\Cref{fig:dependencies}).
 Second, we define an \emph{implication interface}
 that abstractly specifies the properties of implication
-required to prove type soundess, and show how this interface
+required to prove type soundness, and show how this interface
 can be implemented via denotational semantics 
 (\S~\ref{sec:typing:implication}).                          % TOFIX
 
@@ -256,13 +256,16 @@ A case switch operator enables path-sensitive reasoning when
 destructing lists and leads to challenging new cases for our
 soundness theorems.
 
+% not ready yet
+\begin{comment}
 \mypara{6. Bidirectional Typing Algorithm} % Bidirectional Typing
 %
 Our final contribution,
 presented in \Cref{ch:bidirectional},
-is to present a bidirectional typing algortihm, which emits
+is to present a bidirectional typing algorithm, which emits
 \emph{verification conditions (VCs)}. If we restrict the syntax
 of our refinement predicates to a decidable logic, then these VCs 
 can be checked or rejected by an SMT solver. Thus, like \lh,
 \sysrfd can be decidably typechecked without placing severe 
 restrictions on the user. 
+\end{comment}

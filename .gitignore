@@ -1,0 +1,16 @@
+.DS_Store
+*.aux
+*.gz
+*.lof
+*.log
+*.lot
+*.toc
+*.blg
+*.pdf
+*.el
+*.out
+*.fls
+*.dvi
+*.fdb_latexmk
+*.bbl
+comment.cut

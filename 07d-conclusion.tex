@@ -1,4 +1,5 @@
 \chapter{Conclusions \& Future Work}
+\label{ch:future}
   
 We presented and formalized, for the first time, the soundness of
 \sysrf and \sysrfd : the former is 
@@ -107,12 +108,28 @@ the use of liquid types in practical systems is the ability to
 typecheck programs decidably.
 %
 When refinements are restricted to a decidable logic, then 
-verification can be done by an SMT sovler
+verification can be done by an SMT solver
 without reliance on brittle heuristics.
 %
 As a next step, we aim to show that our typing system can be
 equivalently cast in the form of a bi-modal or ``bidirectional''
-algorithm. 
+algorithm that combines checking typing obligations (from 
+explicit annotations left by the programmer or at function
+application sites, for instance) 
+with synthesizing types from program subterms where possible
+\cite{bidir-survey}. 
 %
-Combined with restrictions of the syntax of refinements, this would 
+Combined with restrictions on the syntax of refinements, this would 
 make typechecking for a significant subset of \sysrfd programs decidable.
+
+
+\section*{Acknowledgements for Chapter 10}
+%
+This chapter is adapted from 
+``Mechanizing Refinement Types'' in the proceedings of the 
+$51^{st}$ ACM SIGPLAN Symposium on Principles of Programming
+Languages (POPL 2024), by Michael Borkowski, Niki Vazou, and
+Ranjit Jhala.
+%
+The dissertation author was the primary investigator 
+and author of this material.
